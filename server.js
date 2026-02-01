@@ -97,15 +97,23 @@ let admin = null;
 let firebaseInitialized = false;
 try {
   const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './serviceAccountKey.json';
-  if (fs.existsSync(serviceAccountPath)) {
+const serviceAccountJSON = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+if (serviceAccountJSON || fs.existsSync(serviceAccountPath)) {
     admin = require('firebase-admin');
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    const serviceAccount = serviceAccountJSON 
+        ? JSON.parse(serviceAccountJSON) 
+        : require(serviceAccountPath);
+
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
     firebaseInitialized = true;
     console.log('✅ Firebase admin initialized.');
-  } else {
-    console.log('⚠️  Firebase service account key not found. Running in demo mode (no credit system).');
-  }
+} else {
+    console.log('⚠️ Firebase service account key not found. Running in demo mode.');
+}
+
 } catch (e) {
   console.log('⚠️  Firebase initialization skipped (demo mode):', e.message);
 }
