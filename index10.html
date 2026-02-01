@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduMaster AI - Gjeneratori i Ditarëve Shkollor</title>
+    <link rel="stylesheet" href="style10.css">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    
+    <!-- Auth Gate -->
+    <div id="authGate" class="auth-gate">
+        <div class="auth-container">
+            <div class="auth-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>EduMaster AI</h1>
+                <p>Gjeneratori Inteligjent i Ditarëve Shkollor</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2>Kyçu</h2>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="Fjalëkalimi" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Hyr</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div class="auth-links">
+                    <a href="#" id="showRegister">Krijo llogari të re</a>
+                    <a href="#" id="showReset">Harrova fjalëkalimin</a>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <h2>Regjistrohu</h2>
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="registerName" placeholder="Emri i plotë" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="registerEmail" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="registerPassword" placeholder="Fjalëkalimi (min. 6 karaktere)" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Regjistrohu</span>
+                    <i class="fas fa-user-plus"></i>
+                </button>
+                <div class="auth-links">
+                    <a href="#" id="showLogin">Kthehu te kyçja</a>
+                </div>
+            </form>
+
+            <!-- Reset Password Form -->
+            <form id="resetForm" class="auth-form">
+                <h2>Rivendos Fjalëkalimin</h2>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="resetEmail" placeholder="Email" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Dërgo Link</span>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <div class="auth-links">
+                    <a href="#" id="backToLogin">Kthehu te kyçja</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>EduMaster AI</h2>
+                <button id="closeSidebar" class="close-sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Ballina</span>
+                </a>
+                <a href="#" class="nav-item" data-page="generate">
+                    <i class="fas fa-magic"></i>
+                    <span>Gjenerimi</span>
+                </a>
+                <a href="#" class="nav-item" data-page="history">
+                    <i class="fas fa-history"></i>
+                    <span>Historiku</span>
+                </a>
+                <a href="#" class="nav-item" data-page="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profili</span>
+                </a>
+                <a href="#" id="buyCreditsNavBtn" class="nav-item buy-credits-nav" data-page="buyCredits" style="background: var(--accent); color: white; margin-top: auto; font-weight: 600;">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Blej Kredite</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Dil</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <button id="toggleSidebar" class="menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <button id="backBtn" class="back-btn" style="display: none;">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Kthehu</span>
+                </button>
+
+                <div class="top-bar-right">
+                    <div class="credits-display">
+                        <i class="fas fa-coins"></i>
+                        <span id="creditsCount">0</span>
+                        <span>Kredite</span>
+                    </div>
+                    <button id="themeToggle" class="theme-toggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page: Home -->
+            <div id="homePage" class="page active">
+                <div class="welcome-section">
+                    <h1>Mirë se erdhe, <span id="userName">Përdorues</span>!</h1>
+                    <p>Gjeneroni ditarë shkollor profesional me anën e AI në pak sekonda</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-file-alt"></i>
+                        <h3 id="totalGenerated">0</h3>
+                        <p>Ditarë të Gjeneruar</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-coins"></i>
+                        <h3 id="creditsDisplay">0</h3>
+                        <p>Kredite të Disponueshme</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-download"></i>
+                        <h3 id="totalDownloads">0</h3>
+                        <p>Shkarkime</p>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h2>Veprime të Shpejta</h2>
+                    <div class="action-cards">
+                        <div class="action-card" data-action="generate">
+                            <i class="fas fa-magic"></i>
+                            <h3>Gjeneroni Ditar të Ri</h3>
+                            <p>Filloni tani gjenerimin me AI</p>
+                        </div>
+                        <div class="action-card" data-action="history">
+                            <i class="fas fa-history"></i>
+                            <h3>Shikoni Historikun</h3>
+                            <p>Aksesoni ditarët e mëparshëm</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Generate -->
+            <div id="generatePage" class="page">
+                <h1>Gjeneroni Ditar të Ri</h1>
+                
+                <form id="generateForm" class="generate-form">
+                    <div class="form-group">
+                        <label><i class="fas fa-book"></i> Lënda</label>
+                        <input type="text" id="subject" placeholder="p.sh. Matematikë" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-layer-group"></i> Klasa</label>
+                        <input type="text" id="grade" placeholder="p.sh. Klasa 5" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-lightbulb"></i> Tema e Mësimit</label>
+                        <input type="text" id="topic" placeholder="p.sh. Thyesat dhe Numrat Dhjetorë" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-bullseye"></i> Kompetenca Specifike</label>
+                        <textarea id="competences" rows="3" placeholder="p.sh. Identifikon thyesat, Kryen veprime me numra dhjetorë" ></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-clock"></i> Kohëzgjatja (min)</label>
+                            <input type="number" id="duration" value="45" min="30" max="90" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Data</label>
+                            <input type="date" id="lessonDate" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        <i class="fas fa-magic"></i>
+                        <span>Gjeneroni Ditarin (1 Kredit)</span>
+                    </button>
+                </form>
+
+                <div id="generationResult" class="generation-result" style="display: none;">
+                    <div class="result-header">
+                        <h2>Ditari Juaj i Gjeneruar</h2>
+                        <div class="result-actions">
+                            <button id="exportBtn" class="export-btn">
+                                <i class="fas fa-file-word"></i>
+                                Eksporto në Word
+                            </button>
+                            <button id="copyBtn" class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                                Kopjo
+                            </button>
+                        </div>
+                    </div>
+                    <div id="generatedContent" class="generated-content"></div>
+                </div>
+            </div>
+
+            <!-- Page: History -->
+            <div id="historyPage" class="page">
+                <h1>Historiku i Ditarëve</h1>
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Nuk keni gjeneruar ende asnjë ditar</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Profile -->
+            <div id="profilePage" class="page">
+                <h1>Profili Juaj</h1>
+                
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="profileName">Përdorues</h2>
+                            <p id="profileEmail">email@example.com</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <i class="fas fa-coins"></i>
+                            <div>
+                                <h3 id="profileCredits">0</h3>
+                                <p>Kredite</p>
+                            </div>
+                        </div>
+                        <div class="profile-stat">
+                            <i class="fas fa-file-alt"></i>
+                            <div>
+                                <h3 id="profileGenerated">0</h3>
+                                <p>Ditarë</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Section -->
+                <div class="security-section">
+                    <h2>Siguria e Llogarisë</h2>
+                    <div class="security-buttons">
+                        <button id="changePasswordBtn" class="security-btn">
+                            <i class="fas fa-key"></i>
+                            <span>Ndrysho Fjalëkalimin</span>
+                        </button>
+                        <button id="resetPasswordBtn" class="security-btn">
+                            <i class="fas fa-redo"></i>
+                            <span>Kam harruar Fjalëkalimin</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Purchase History Section -->
+                <div class="purchase-history-section">
+                    <h2>Paketa Aktuale</h2>
+                    <div id="currentPackageInfo" class="package-info">
+                        <p style="text-align: center; color: #999;">Duke ngarkuar informacionin e paketës...</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="buyCreditsPage" class="page">
+                <h1>Blerje Kreditesh</h1>
+                <div class="credits-section">
+                    <h2>Zgjidh paketën</h2>
+                    <p class="credits-info">Zgjidhni paketën që ju nevojitet për të vazhduar gjenerimin</p>
+                    
+                    <div class="pricing-grid">
+                        <div class="pricing-card">
+                            <div class="pricing-badge">Starter</div>
+                            <h3>10 Kredite</h3>
+                            <div class="pricing-price">€3.99</div>
+                            <ul class="pricing-features">
+                                <li><i class="fas fa-check"></i> 10 Ditarë</li>
+                                <li><i class="fas fa-check"></i> Eksport Word</li>
+                                <li><i class="fas fa-check"></i> Historik</li>
+                            </ul>
+                            <button class="pricing-btn" data-package="10">Blej Tani</button>
+                        </div>
+
+                        <div class="pricing-card popular">
+                            <div class="pricing-badge">Popullor</div>
+                            <h3>20 Kredite</h3>
+                            <div class="pricing-price">€6.99</div>
+                            <ul class="pricing-features">
+                                <li><i class="fas fa-check"></i> 20 Ditarë</li>
+                                <li><i class="fas fa-check"></i> Eksport Word</li>
+                                <li><i class="fas fa-check"></i> Historik</li>
+                            </ul>
+                            <button class="pricing-btn" data-package="20">Blej Tani</button>
+                        </div>
+
+                        <div class="pricing-card">
+                            <div class="pricing-badge">Pro</div>
+                            <h3>30 Kredite</h3>
+                            <div class="pricing-price">€8.99</div>
+                            <ul class="pricing-features">
+                                <li><i class="fas fa-check"></i> 30 Ditarë</li>
+                                <li><i class="fas fa-check"></i> Eksport Word</li>
+                                <li><i class="fas fa-check"></i> Historik</li>
+                            </ul>
+                            <button class="pricing-btn" data-package="30">Blej Tani</button>
+                        </div>
+
+                        <div class="pricing-card">
+                            <div class="pricing-badge">Premium</div>
+                            <h3>50 Kredite</h3>
+                            <div class="pricing-price">€12.99</div>
+                            <ul class="pricing-features">
+                                <li><i class="fas fa-check"></i> 50 Ditarë</li>
+                                <li><i class="fas fa-check"></i> Eksport Word</li>
+                                <li><i class="fas fa-check"></i> Historik</li>
+                            </ul>
+                            <button class="pricing-btn" data-package="50">Blej Tani</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Duke gjeneruar...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- DOCX Library (për eksportim profesional) -->
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    
+    <!-- App Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    <script src="export.js"></script>
+</body>
+</html>

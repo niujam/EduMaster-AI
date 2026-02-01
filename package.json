@@ -1,0 +1,21 @@
+{
+  "name": "edumaster-backend",
+  "version": "1.0.0",
+  "description": "Backend proxy for EduMaster AI: secure OpenAI calls and optional Firebase admin operations.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.67.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.10.1",
+    "openai": "^4.2.1",
+    "pizzip": "^3.2.0",
+    "protobufjs": "^7.5.4",
+    "stripe": "^20.3.0"
+  }
+}
