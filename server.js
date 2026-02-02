@@ -10,9 +10,10 @@ const PizZip = require('pizzip');
 
 const app = express();
 app.use(cors({ 
-  origin: ['http://localhost:3000', 'http://localhost:8080', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'file://'],
+  origin: ['http://localhost:3000', 'http://localhost:8080', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'file://','´https://edumaster-ai.onrender.com'],
   credentials: true
 }));
+app.use(express.static(path.join(__dirname)));
 // Stripe Webhook requires raw body, so we register it before JSON parsing
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
