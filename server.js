@@ -14,6 +14,7 @@ app.use(cors({
   credentials: true
 }));
 app.get('/', (req, res) => {res.sendFile(path.join(__dirname,'index10.html'));});
+app.use(express.static(__dirname));
 // Stripe Webhook requires raw body, so we register it before JSON parsing
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
