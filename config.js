@@ -20,9 +20,8 @@ const getApiBaseUrl = () => {
         return `https://${window.location.hostname}`;
     }
     // Local development
-    return 'http://localhost:3000';
+    return ``;
 };
-
 const API_BASE_URL = getApiBaseUrl();
 const OPENAI_API_ENDPOINT = `${API_BASE_URL}/api/generate`;
 const OPENAI_MODEL = "gpt-3.5-turbo"; // Ose "gpt-4o-mini"
