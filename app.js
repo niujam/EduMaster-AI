@@ -80,6 +80,16 @@ function initializeApp(user) {
     // Setup real-time listeners
     setupRealtimeListeners();
     
+    // Check for URL parameters (e.g., ?page=buyCredits from Stripe cancel)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageParam = urlParams.get('page');
+    if (pageParam) {
+        console.log(`Navigating to page from URL parameter: ${pageParam}`);
+        navigateToPage(pageParam);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     // Check and start tour if user is new
     if (typeof checkAndStartTour === 'function') {
         checkAndStartTour();
@@ -1011,10 +1021,16 @@ async function loadPromoConfig() {
                         
                         const regularPrice = priceContainer.querySelector('.pricing-price');
                         const discountDiv = priceContainer.querySelector('.pricing-discount');
-                        const discountedPriceSpan = document.getElementById(`price-${pkg}`);
+                        const oldPriceSpan = discountDiv?.querySelector('.pricing-old');
+                        const discountedPriceSpan = discountDiv?.querySelector('.pricing-new') || document.getElementById(`price-${pkg}`);
                         
+                        // Show discount layout with old price struck through
                         if (regularPrice) regularPrice.style.display = 'none';
-                        if (discountDiv) discountDiv.style.display = 'flex';
+                        if (discountDiv) {
+                            discountDiv.style.display = 'flex';
+                            const euro = (originalPrice / 100).toFixed(2);
+                            if (oldPriceSpan) oldPriceSpan.textContent = `€${euro}`;
+                        }
                         if (discountedPriceSpan) discountedPriceSpan.textContent = `€${discountedPrice}`;
                         
                         console.log(`✅ Price ${pkg}: €${originalPrice} → €${discountedPrice}`);

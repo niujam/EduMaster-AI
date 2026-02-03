@@ -34,6 +34,9 @@ app.get('/privacy', (req, res) => {res.sendFile(path.join(__dirname,'privacy.htm
 // Serve terms.html for /terms route
 app.get('/terms', (req, res) => {res.sendFile(path.join(__dirname,'terms.html'));});
 
+// Serve pricing page
+app.get('/pricing', (req, res) => {res.sendFile(path.join(__dirname,'index10.html'));});
+
 // Stripe Webhook requires raw body, so we register it before JSON parsing
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -134,8 +137,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
         }
       ],
       mode: 'payment',
-      success_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/success`,
-      cancel_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/pricing`,
+      success_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/?page=buyCredits`,
       metadata: {
         user_id: uid,
         credits: creditsMap[packageSize]
