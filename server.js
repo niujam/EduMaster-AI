@@ -39,15 +39,24 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
+// Body Parser for all routes except webhook
+app.use('/api', bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 // Create Checkout Session for Payment
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
+    console.log('📝 Create checkout session request received');
+    console.log('Request body:', req.body);
+    
     if (!stripe) {
+      console.error('❌ Stripe not configured');
       return res.status(500).json({ error: 'Stripe not configured' });
     }
 
     const idToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
     if (!idToken) {
+      console.error('❌ No authorization token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -60,6 +69,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 
     const { packageSize, userId } = req.body;
+    
+    console.log('Package size:', packageSize);
+    console.log('User ID:', userId);
 
     // Validate package size
     const priceMap = {
@@ -77,10 +89,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
     };
 
     if (!priceMap[packageSize] || !creditsMap[packageSize]) {
+      console.error('❌ Invalid package size:', packageSize);
       return res.status(400).json({ error: 'Invalid package size' });
     }
 
     let price = priceMap[packageSize];
+    console.log('Base price:', price);
 
     // Check for active promo in Firestore
     if (admin && firebaseInitialized) {
@@ -101,6 +115,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
       }
     }
 
+    console.log('Creating Stripe session with price:', price);
+    console.log('Credits:', creditsMap[packageSize]);
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -126,10 +143,32 @@ app.post('/api/create-checkout-session', async (req, res) => {
     });
 
     console.log(`✅ Checkout session created for user ${uid}: ${session.id}`);
+    console.log('Session URL:', session.url);
+    
+    if (!session.url) {
+      console.error('❌ Session created but URL is missing');
+      return res.status(500).json({ 
+        error: 'Session created but URL missing',
+        detail: 'Stripe session was created but no checkout URL was returned'
+      });
+    }
+    
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Create session error:', error?.message || error);
-    res.status(500).json({ error: 'Failed to create checkout session', detail: error?.message });
+    console.error('❌ Create session error:', error?.message || error);
+    console.error('Error stack:', error?.stack);
+    
+    // Return detailed error message
+    const errorMessage = error?.message || 'Unknown error';
+    const errorDetail = errorMessage.includes('No such price') 
+      ? 'Invalid price configuration' 
+      : errorMessage;
+    
+    res.status(500).json({ 
+      error: 'Failed to create checkout session', 
+      detail: errorDetail,
+      message: 'Gabim në krijimin e sesionit të pagesës. Ju lutem provoni përsëri.'
+    });
   }
 });
 

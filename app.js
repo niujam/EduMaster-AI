@@ -84,6 +84,12 @@ function initializeApp(user) {
     if (typeof checkAndStartTour === 'function') {
         checkAndStartTour();
     }
+    
+    // Setup legal links after a short delay
+    setTimeout(() => {
+        setupLegalLinks();
+        console.log('Legal links setup completed');
+    }, 500);
 }
 
 // ===================================
@@ -214,9 +220,17 @@ navItems.forEach(item => {
 });
 
 function navigateToPage(pageName) {
-    // Update active nav item
+    console.log(`Navigating to page: ${pageName}`);
+    
+    // Close sidebar on mobile
+    if (window.innerWidth <= 968) {
+        sidebar.classList.remove('open');
+        document.querySelector('.sidebar-overlay')?.remove();
+    }
+    
+    // Update active nav item (only for sidebar items)
     navItems.forEach(nav => nav.classList.remove('active'));
-    const activeNav = document.querySelector(`[data-page="${pageName}"]`);
+    const activeNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
     if (activeNav) {
         activeNav.classList.add('active');
     }
@@ -225,6 +239,14 @@ function navigateToPage(pageName) {
     pages.forEach(page => page.classList.remove('active'));
     const activePage = document.getElementById(`${pageName}Page`);
     if (activePage) {
+        activePage.classList.add('active');
+        console.log(`Activated page: ${pageName}Page`);
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+    } else {
+        console.error(`Page not found: ${pageName}Page`);
+    }
         activePage.classList.add('active');
     }
     
@@ -907,18 +929,26 @@ async function blejKredite(sasia) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Gabim në krijimin e sesionit të pagesës');
+            console.error('Server error response:', error);
+            throw new Error(error.detail || error.message || error.error || 'Gabim në krijimin e sesionit të pagesës');
         }
 
         const data = await response.json();
+        console.log('Checkout session response:', data);
+        
         if (data.url) {
             // Redirect to Stripe checkout
+            console.log('Redirecting to:', data.url);
             window.location.href = data.url;
         } else {
             throw new Error('URL e pagesës nuk u gjet. Ju lutem provoni përsëri.');
         }
     } catch (error) {
         console.error('Payment error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack
+        });
         const errorMsg = error.message || 'Gabim në krijimin e pagesës. Kontrolloni lidhjen me internetin dhe provoni përsëri.';
         showToast(errorMsg, 'error');
     } finally {
@@ -1126,21 +1156,32 @@ window.navigateToPage = function(pageName) {
 // Legal Pages Navigation
 // ===================================
 function setupLegalLinks() {
-    document.querySelectorAll('[data-page="privacy"], [data-page="terms"]').forEach(link => {
-        link.addEventListener('click', (e) => {
+    // Select all links with data-page="privacy" or data-page="terms"
+    const legalLinks = document.querySelectorAll('[data-page="privacy"], [data-page="terms"]');
+    console.log(`Setting up ${legalLinks.length} legal links`);
+    
+    legalLinks.forEach(link => {
+        // Remove any existing listeners
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+        
+        newLink.addEventListener('click', (e) => {
             e.preventDefault();
-            const page = link.dataset.page;
+            e.stopPropagation();
+            const page = newLink.dataset.page;
+            console.log(`Navigating to ${page} page`);
             navigateToPage(page);
         });
     });
 }
 
-// Setup legal links on page load and after DOM changes
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupLegalLinks);
-} else {
+// Setup legal links on page load
+setupLegalLinks();
+
+// Re-setup after a short delay to catch dynamically added footer
+setTimeout(() => {
     setupLegalLinks();
-}
+}, 1000);
 
 // ===================================
 // Logout
