@@ -262,7 +262,6 @@ function navigateToPage(pageName) {
         sidebar.classList.remove('open');
         document.querySelector('.sidebar-overlay')?.remove();
     }
-}
 
 // Back button
 backBtn.addEventListener('click', () => {
