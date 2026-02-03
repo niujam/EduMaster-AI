@@ -1,0 +1,272 @@
+📦 PAYMENT INTEGRATION - SKEDARËT E MODIFIKUAR
+
+═════════════════════════════════════════════════════════════════════════
+
+✅ GATI PËR PUSH - 3 Shkurt 2026
+
+═════════════════════════════════════════════════════════════════════════
+
+📄 SKEDARËT E MODIFIKUAR:
+
+1️⃣ app.js
+   📍 Linja 893-1015 (120+ rreshta të shtuar)
+   ✓ Funksion async blejKredite() - Çakton POST /api/create-checkout-session
+   ✓ Funksion loadPromoConfig() - Lexon Firestore + Shfaq UI
+   ✓ Auto-load promo kur faqja hapet
+
+2️⃣ server.js  
+   📍 Linja 23-120 (90+ rreshta të shtuar)
+   ✓ POST /api/create-checkout-session endpoint
+   ✓ Firebase token validation
+   ✓ Firestore promo_config lookup
+   ✓ Dynamic price calculation
+   ✓ Stripe session creation me metadata={'user_id': uid}
+   ✓ GET /success route (serving success.html)
+
+3️⃣ index10.html
+   📍 Linja 349-410 (60+ rreshta të modifikuar)
+   ✓ Shtuar <div id="promoNotice"> me emoji dhe mesazhe
+   ✓ Shtuar <div class="pricing-price-container">
+   ✓ Dy divs për çmim: .pricing-price (normal) + .pricing-discount (zbritur)
+   ✓ Data attributes: data-original, data-package
+   ✓ Të gjithë 4 paketat të rishikuara
+
+4️⃣ style10.css
+   📍 Linja 1138+ (80+ rreshta të shtuar)
+   ✓ .pricing-price-container styling
+   ✓ .pricing-discount (flex display)
+   ✓ .pricing-old (strikethrough)
+   ✓ .pricing-new (green color)
+   ✓ .promo-notice (green gradient background)
+   ✓ @keyframes slideDown animation
+
+5️⃣ success.html (✨ SKEDAR I RI)
+   📍 Skedar plotësisht i ri
+   ✓ Dark theme (matching app design)
+   ✓ Shfaqet pas pagesës në Stripe
+   ✓ Mesazhe në Shqipe: "Pagesa u krye me sukses!"
+   ✓ Status info me emoji
+   ✓ Buton "Kthehu te Paneli"
+   ✓ Auto-redirekto pas 5 sekondash
+   ✓ Smooth animations
+
+6️⃣ .gitignore
+   📍 Linja 1-6
+   ✓ KOREKT: .env (API keys)
+   ✓ KOREKT: serviceAccountKey.json (Firebase credentials)
+   ✓ KOREKT: node_modules/, __pycache__/
+
+7️⃣ PAYMENT_INTEGRATION_COMPLETE.md (📝 DOKUMENTIM)
+   📍 Skedar i ri - Udhëzim i plotë
+   ✓ Përshkrim i integrimit
+   ✓ Kodi kryesor i secilës funksioni
+   ✓ Firestore setup
+   ✓ Fluksja e pages
+   ✓ Test checklist
+   ✓ Security verification
+
+═════════════════════════════════════════════════════════════════════════
+
+✅ VERIFIKIMI I KËRKESAVE:
+
+[✓] Çmimet Dinamike
+    • Backend lexon is_active + discount_percent nga Firestore
+    • Zbritja aplikohet PËRPARA create-checkout-session
+    • Çmimi i zbritur i trimeton në Stripe
+
+[✓] Metadata & Webhook
+    • metadata={'user_id': user_id, 'credits': n} në sesion
+    • Webhook handler ekstrakton user_id
+    • Shtoj kredite: users/{uid}/credits += amount
+    • Console logs: "✅ Added X credits to user Y"
+
+[✓] URLs
+    • success_url: "https://edumaster-ai.onrender.com/success"
+    • cancel_url: "https://edumaster-ai.onrender.com/pricing"
+    • Hardkoduar në server.js endpoint
+
+[✓] Frontend UI
+    • Çmimi i vjetër shfaqet me vizë në mes (strikethrough)
+    • Çmimi i ri shfaqet në ngjyrën e aksent (#10a37f)
+    • Mesazh "🎁 Oferte e Limituar!" shfaqet
+    • Data e skadencës shfaqet në format: "3 Shkurt"
+
+[✓] Siguria
+    • .env në .gitignore ✓
+    • serviceAccountKey.json në .gitignore ✓
+    • Firebase token validation në endpoint
+    • No hardcoded API keys
+    • process.env.STRIPE_SECRET_KEY
+    • process.env.STRIPE_WEBHOOK_SECRET
+
+═════════════════════════════════════════════════════════════════════════
+
+🔄 FLUKSJA E PAGES - PËRSHKRIM:
+
+1. User klikon "Blej Tani" në pricing card
+   └─> Çakton blejKredite(packageSize)
+
+2. app.js: blejKredite()
+   ├─ Valido user (firebase.auth().currentUser)
+   ├─ Merr ID token: await user.getIdToken()
+   └─ POST /api/create-checkout-session
+      └─ Body: {packageSize: 50, userId: uid}
+
+3. server.js: POST /api/create-checkout-session
+   ├─ Valido token: admin.auth().verifyIdToken(idToken)
+   ├─ Ekstrakto uid
+   ├─ Lexo Firestore: settings/promo_config
+   ├─ Nëse promo aktive:
+   │  └─ price = price * (1 - discount/100)
+   ├─ Krijo Stripe session:
+   │  ├─ currency: 'eur'
+   │  ├─ unit_amount: price (çmim i zbritur)
+   │  ├─ success_url: 'https://edumaster-ai.onrender.com/success'
+   │  ├─ cancel_url: 'https://edumaster-ai.onrender.com/pricing'
+   │  └─ metadata: {user_id: uid, credits: 50}
+   └─ Return: {url: session.url}
+
+4. Frontend: Ridirekto
+   └─> window.location.href = sessionUrl
+       └─> Stripe Checkout
+
+5. User pagon në Stripe Checkout
+
+6. Stripe: Webhook POST /webhook
+   └─> Dërgon event.type='checkout.session.completed'
+
+7. server.js: Webhook Handler
+   ├─ Valido signature
+   ├─ Ekstrakto uid = session.metadata.user_id
+   ├─ Shto kredite:
+   │  └─ users/{uid}/credits += 50
+   └─ Log: "✅ Added 50 credits to user uid"
+
+8. Frontend: Success Page
+   ├─ GET /success → Shërbie success.html
+   ├─ Shfaq: "✅ Pagesa u krye me sukses!"
+   ├─ Shfaq: Status info me emoji
+   └─ Auto-ridirekto pas 5 sekondash në /
+
+═════════════════════════════════════════════════════════════════════════
+
+🧪 TESTING CHECKLIST:
+
+Frontend Tests:
+[ ] Kur nuk ka promo: çmimi normal shfaqet
+[ ] Kur ka promo: çmimi i zbritur shfaqet
+[ ] Çmimi i vjetër shfaqet me vizë në mes
+[ ] Çmimi i ri shfaqet në ngjyrën e aksent
+[ ] "🎁 Oferte e Limituar!" shfaqet kur promo aktive
+[ ] Data e skadencës shfaqet (p.sh., "3 Shkurt")
+[ ] Buton "Blej Tani" klikon saktë
+[ ] Redirekto në Stripe checkout
+
+Backend Tests:
+[ ] POST /api/create-checkout-session merr request
+[ ] Token validation: throw error nëse token invalid
+[ ] Firestore lookup: promo_config të ekziston
+[ ] Zbritja: price = 1299 - (1299 * 0.15) = 1104.15
+[ ] Session creation: stripe.checkout.sessions.create()
+[ ] Metadata: {user_id: uid, credits: 50}
+[ ] Console log: "✅ Checkout session created..."
+
+Webhook Tests:
+[ ] Stripe dërgon POST /webhook
+[ ] Webhook valido signature
+[ ] Ekstrakto uid nga metadata
+[ ] Firestore update: users/{uid}/credits increment
+[ ] Console log: "✅ Added 50 credits to user xyz"
+
+Success Page Tests:
+[ ] Shfaqet pas pagesës
+[ ] Mesazhe në Shqipe
+[ ] Status info visible
+[ ] Buton "Kthehu te Paneli" funksionon
+[ ] Auto-redirekto pas 5 sekondash
+
+═════════════════════════════════════════════════════════════════════════
+
+📊 FIRESTORE STRUKTURA:
+
+Koleksioni: settings
+Dokumenti: promo_config
+
+{
+  "is_active": true,
+  "discount_percent": 15,
+  "expiry_date": Timestamp(2026-02-10),
+  "description": "Ofertë Festive 15%"
+}
+
+Nëse is_active = false:
+└─ Promo nuk shfaqet, çmimet normale
+
+Nëse discount_percent = 20:
+├─ €3.99 → €3.19
+├─ €6.99 → €5.59
+├─ €8.99 → €7.19
+└─ €12.99 → €10.39
+
+═════════════════════════════════════════════════════════════════════════
+
+🔐 SECURITY VERIFICATION:
+
+Backend:
+✓ Firebase ID token validation
+✓ Stripe secret key from process.env
+✓ Webhook signature verification
+✓ No hardcoded secrets
+✓ Error handling without exposing details
+
+Frontend:
+✓ Uses Firebase authentication
+✓ No API keys exposed
+✓ CORS configured
+✓ Secure token transmission in Authorization header
+
+Repository:
+✓ .env excluded
+✓ serviceAccountKey.json excluded
+✓ node_modules/ excluded
+✓ No credentials in code
+
+═════════════════════════════════════════════════════════════════════════
+
+📝 DOKUMENTIM:
+
+Mbaka dokumente të plota në:
+• PAYMENT_INTEGRATION_COMPLETE.md (në workspace)
+  ├─ Përshkrim i plotë i implementimit
+  ├─ Kodi kryesor i secilës funksioni
+  ├─ Firestore setup udhëzim
+  ├─ Fluksja e pages (diagram)
+  ├─ Test checklist
+  └─ Security verification
+
+═════════════════════════════════════════════════════════════════════════
+
+✨ PËRMBLEDHJE:
+
+Të gjitha 5 detyra janë përfunduar me sukses:
+
+1. ✅ Çmimet Dinamike
+2. ✅ Metadata & Webhook  
+3. ✅ URLs (onrender.com)
+4. ✅ Frontend UI (discount display)
+5. ✅ Siguria (.gitignore)
+
+Skedarët e modifikuar:
+✓ app.js (async functions)
+✓ server.js (POST endpoint)
+✓ index10.html (promo UI)
+✓ style10.css (discount styling)
+✓ success.html (new)
+✓ .gitignore (verified)
+✓ PAYMENT_INTEGRATION_COMPLETE.md (documentation)
+
+═════════════════════════════════════════════════════════════════════════
+
+🎉 STATUSI: 🟢 GATI PËR PUSH
+
+═════════════════════════════════════════════════════════════════════════

@@ -4,6 +4,7 @@
 let currentUser = null;
 let userCredits = 0;
 let userHistory = [];
+let uploadedPhotos = []; // Array për të ruajtur fotot e ngarkuara
 
 // ===================================
 // DOM Elements - Navigation
@@ -33,6 +34,15 @@ const exportBtn = document.getElementById('exportBtn');
 const copyBtn = document.getElementById('copyBtn');
 
 // ===================================
+// DOM Elements - Photo Upload
+// ===================================
+const photoInput = document.getElementById('photoInput');
+const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+const photoPreviewContainer = document.getElementById('photoPreviewContainer');
+const photoCount = document.getElementById('photoCount');
+const multipleThemesCheckbox = document.getElementById('multipleThemesCheckbox');
+
+// ===================================
 // DOM Elements - Credits Display
 // ===================================
 const creditsCount = document.getElementById('creditsCount');
@@ -49,10 +59,12 @@ function initializeApp(user) {
     const userName = document.getElementById('userName');
     const profileName = document.getElementById('profileName');
     const profileEmail = document.getElementById('profileEmail');
+    const securityEmail = document.getElementById('securityEmail');
     
     userName.textContent = user.displayName || 'Përdorues';
     profileName.textContent = user.displayName || 'Përdorues';
     profileEmail.textContent = user.email;
+    if (securityEmail) securityEmail.textContent = user.email;
     
     // Load user data
     loadUserData();
@@ -62,6 +74,11 @@ function initializeApp(user) {
     
     // Set default date for lesson
     document.getElementById('lessonDate').valueAsDate = new Date();
+    
+    // Check and start tour if user is new
+    if (typeof checkAndStartTour === 'function') {
+        checkAndStartTour();
+    }
 }
 
 // ===================================
@@ -283,6 +300,184 @@ document.querySelectorAll('.action-card').forEach(card => {
 });
 
 // ===================================
+// Photo Optimization with Canvas
+// ===================================
+/**
+ * Optimizoni foton duke e zvogëluar në Canvas
+ * dhe duke e konvertuar në Base64 me cilësi 0.7
+ * 
+ * @param {File} file - Skedar imazh i ngarkuar
+ * @returns {Promise<string>} - Base64 string i fotos të optimizuar
+ */
+function optoFoto(file) {
+    return new Promise((resolve, reject) => {
+        // Krijo FileReader
+        const reader = new FileReader();
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            
+            img.onload = () => {
+                // Krijo Canvas
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Llogarit dimensionet e reja (max 1200px)
+                let newWidth = img.width;
+                let newHeight = img.height;
+                const maxSize = 1200;
+                
+                if (img.width > img.height) {
+                    // Imazhi është në horizontal
+                    if (img.width > maxSize) {
+                        newWidth = maxSize;
+                        newHeight = Math.round((img.height * maxSize) / img.width);
+                    }
+                } else {
+                    // Imazhi është në vertikal ose katror
+                    if (img.height > maxSize) {
+                        newHeight = maxSize;
+                        newWidth = Math.round((img.width * maxSize) / img.height);
+                    }
+                }
+                
+                // Vendos canvas dimensionet
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                
+                // Vizato imazhin në canvas
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                
+                // Konverto në Base64 JPEG me cilësi 0.7
+                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                
+                // Llogarit madhësine origjinale vs të optimizuar
+                const originalSize = (event.target.result.length / 1024).toFixed(2);
+                const optimizedSize = (optimizedBase64.length / 1024).toFixed(2);
+                
+                console.log(`📸 Foto optimizuar: ${file.name}`);
+                console.log(`   Original: ${originalSize}KB (${img.width}x${img.height}px)`);
+                console.log(`   Optimized: ${optimizedSize}KB (${newWidth}x${newHeight}px)`);
+                console.log(`   Kompresim: ${((1 - optimizedSize / originalSize) * 100).toFixed(1)}%`);
+                
+                resolve(optimizedBase64);
+            };
+            
+            img.onerror = () => {
+                reject(new Error('Gabim në ngarkimin e imazhit'));
+            };
+            
+            // Vendos source në Image
+            img.src = event.target.result;
+        };
+        
+        reader.onerror = () => {
+            reject(new Error('Gabim në leximin e skedarit'));
+        };
+        
+        // Lexo skedarit si Data URL
+        reader.readAsDataURL(file);
+    });
+}
+
+// Make it global for use
+window.optoFoto = optoFoto;
+
+// ===================================
+// Photo Upload Handlers
+// ===================================
+uploadPhotosBtn.addEventListener('click', () => {
+    photoInput.click();
+});
+
+photoInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    
+    // Limit to 10 photos total
+    if (uploadedPhotos.length + files.length > 10) {
+        showToast(`Mund të ngarkohet maksimalisht 10 foto. Keni ${uploadedPhotos.length} foto.`, 'warning');
+        return;
+    }
+    
+    // Process each file with optimization
+    for (const file of files) {
+        if (file.type.startsWith('image/')) {
+            try {
+                showToast(`📸 Po optimizohet: ${file.name}...`, 'info');
+                
+                // Optimize the photo
+                const optimizedBase64 = await optoFoto(file);
+                
+                uploadedPhotos.push({
+                    name: file.name,
+                    base64: optimizedBase64
+                });
+                
+                renderPhotoPreview();
+                updateGenerateButtonState();
+                
+                showToast(`✅ ${file.name} u ngarkua me sukses`, 'success');
+            } catch (error) {
+                console.error('Gabim në optimizimin e fotos:', error);
+                showToast(`❌ Gabim në ${file.name}: ${error.message}`, 'error');
+            }
+        }
+    }
+});
+
+function renderPhotoPreview() {
+    photoPreviewContainer.innerHTML = '';
+    uploadedPhotos.forEach((photo, index) => {
+        const photoDiv = document.createElement('div');
+        photoDiv.className = 'photo-preview';
+        photoDiv.innerHTML = `
+            <img src="${photo.base64}" alt="Photo ${index + 1}">
+            <button type="button" class="photo-preview-remove" onclick="removePhoto(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        photoPreviewContainer.appendChild(photoDiv);
+    });
+    
+    // Update photo count
+    photoCount.textContent = `${uploadedPhotos.length}/10 foto të ngarkuara`;
+}
+
+function removePhoto(index) {
+    uploadedPhotos.splice(index, 1);
+    renderPhotoPreview();
+    updateGenerateButtonState();
+}
+
+// Make removePhoto global
+window.removePhoto = removePhoto;
+
+function updateGenerateButtonState() {
+    const subject = document.getElementById('subject').value.trim();
+    const grade = document.getElementById('grade').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    
+    // Button is enabled if: required fields are filled OR at least one photo is uploaded
+    const requiredFieldsFilled = subject && grade && topic;
+    const hasPhotos = uploadedPhotos.length > 0;
+    
+    generateBtn.disabled = !(requiredFieldsFilled || hasPhotos);
+    
+    // Update button text based on photos
+    const creditText = `${window.CONFIG.credits.perGeneration} Kredit`;
+    if (uploadedPhotos.length > 0) {
+        generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
+    } else {
+        generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
+    }
+}
+
+// Listen for changes in required fields to update button state
+document.getElementById('subject').addEventListener('input', updateGenerateButtonState);
+document.getElementById('grade').addEventListener('input', updateGenerateButtonState);
+document.getElementById('topic').addEventListener('input', updateGenerateButtonState);
+
+// ===================================
 // Generate Diary Handler
 // ===================================
 generateForm.addEventListener('submit', async (e) => {
@@ -301,7 +496,8 @@ generateForm.addEventListener('submit', async (e) => {
         topic: document.getElementById('topic').value.trim(),
         competences: document.getElementById('competences').value.trim(),
         duration: document.getElementById('duration').value,
-        date: document.getElementById('lessonDate').value
+        date: document.getElementById('lessonDate').value,
+        isMultipleThemes: multipleThemesCheckbox.checked
     };
     
     try {
@@ -347,7 +543,7 @@ generateForm.addEventListener('submit', async (e) => {
 // Generate Diary with OpenAI
 // ===================================
 async function generateDiaryWithAI(formData) {
-    const prompt = `INSTRUKSIONE KRITIKE: Gjenero VETËM HTML template-in me këto vlesat KONKRETE zëvendësuese në vend të {...}
+    const prompt = `INSTRUKSIONE KRITIKE: Nëse janë dhënë fotot, lexoji ato me kujdes dhe nxirr informacionin për Temën, Objektivat, Metodologjinë dhe Detyrat. Pastaj, gjenero VETËM HTML template-in me këto vlesat KONKRETE zëvendësuese në vend të {...}
 
 ZËVENDËSIMET DETYRUESE:
 {tema_1} = ${formData.topic}
@@ -478,7 +674,11 @@ PASTAJ PLOTËSOJI KËTË INFORMACION:
             'Content-Type': 'application/json',
             'Authorization': __id_token_for_server ? 'Bearer ' + __id_token_for_server : undefined
         },
-        body: JSON.stringify({ prompt: prompt, formData: formData, model: window.CONFIG.openai.model })
+        body: JSON.stringify({ 
+            prompt: prompt, 
+            formData: formData, 
+            photos: uploadedPhotos  // Include uploaded photos
+        })
     });
 
     if (!response.ok) {
@@ -690,28 +890,46 @@ async function deleteHistoryItem(id) {
 // ===================================
 // Pricing Buttons (Stripe)
 // ===================================
-function blejKredite(sasia) {
+async function blejKredite(sasia) {
     const user = firebase.auth().currentUser;
     if (!user) {
         showToast('Ju lutem kyçuni për të vazhduar me pagesën.', 'error');
         return;
     }
 
-    const links = {
-        10: 'https://buy.stripe.com/test_3cIfZacaT2mX8Ni7Zde3e00',
-        20: 'https://buy.stripe.com/test_dRm5kw4Ird1B0gMenBe3e01',
-        30: 'https://buy.stripe.com/test_28E8wIa2L1iT4x2frFe3e02',
-        50: 'https://buy.stripe.com/test_aFa6oAcaTgdN7Je7Zde3e03'
-    };
+    try {
+        showLoading(true);
+        
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+                packageSize: Number(sasia),
+                userId: user.uid
+            })
+        });
 
-    const link = links[Number(sasia)];
-    if (!link) {
-        showToast('Paketa e zgjedhur nuk është valide.', 'error');
-        return;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Gabim në krijimin e sesionit të pagesës');
+        }
+
+        const data = await response.json();
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            throw new Error('URL e pagesës nuk u gjendet');
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        showToast(`Gabim: ${error.message}`, 'error');
+    } finally {
+        showLoading(false);
     }
-
-    const url = `${link}?client_reference_id=${encodeURIComponent(user.uid)}`;
-    window.location.href = url;
 }
 
 window.blejKredite = blejKredite;
@@ -722,6 +940,76 @@ document.querySelectorAll('.pricing-btn').forEach(btn => {
         blejKredite(packageSize);
     });
 });
+
+// Load and Display Promo Pricing
+async function loadPromoConfig() {
+    try {
+        const db = firebase.firestore();
+        const promoDoc = await db.collection('settings').doc('promo_config').get();
+        
+        if (promoDoc.exists) {
+            const promoData = promoDoc.data();
+            
+            if (promoData.is_active && promoData.discount_percent) {
+                const discountPercent = promoData.discount_percent;
+                const expiryDate = promoData.expiry_date;
+                
+                // Show promo notice
+                const promoNotice = document.getElementById('promoNotice');
+                if (promoNotice) {
+                    promoNotice.style.display = 'block';
+                    document.getElementById('promoPercent').textContent = discountPercent;
+                    
+                    // Format expiry date
+                    if (expiryDate) {
+                        const expiryMs = expiryDate.toMillis ? expiryDate.toMillis() : expiryDate.getTime();
+                        const expiryDateObj = new Date(expiryMs);
+                        const formattedDate = expiryDateObj.toLocaleDateString('sq-AL', { 
+                            day: 'numeric', 
+                            month: 'long'
+                        });
+                        document.getElementById('promoExpiry').textContent = formattedDate;
+                    }
+                }
+                
+                // Update prices
+                const packages = [10, 20, 30, 50];
+                const originalPrices = {
+                    10: 3.99,
+                    20: 6.99,
+                    30: 8.99,
+                    50: 12.99
+                };
+                
+                packages.forEach(pkg => {
+                    const originalPrice = originalPrices[pkg];
+                    const discountedPrice = (originalPrice * (1 - discountPercent / 100)).toFixed(2);
+                    
+                    // Update display
+                    const priceContainer = document.querySelector(`[data-package="${pkg}"]`).closest('.pricing-card').querySelector('.pricing-price-container');
+                    const regularPrice = priceContainer.querySelector('.pricing-price');
+                    const discountDiv = priceContainer.querySelector('.pricing-discount');
+                    const discountedPriceSpan = document.getElementById(`price-${pkg}`);
+                    
+                    regularPrice.style.display = 'none';
+                    discountDiv.style.display = 'flex';
+                    discountedPriceSpan.textContent = `€${discountedPrice}`;
+                    
+                    console.log(`✅ Price ${pkg}: €${originalPrice} → €${discountedPrice}`);
+                });
+            }
+        }
+    } catch (error) {
+        console.warn('Could not load promo config:', error.message);
+    }
+}
+
+// Load promo when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPromoConfig);
+} else {
+    loadPromoConfig();
+}
 
 // ===================================
 // Profile Security Buttons
@@ -830,6 +1118,17 @@ window.navigateToPage = function(pageName) {
         loadCurrentPackageInfo();
     }
 };
+
+// ===================================
+// Legal Pages Navigation
+// ===================================
+document.querySelectorAll('[data-page="privacy"], [data-page="terms"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const page = link.dataset.page;
+        navigateToPage(page);
+    });
+});
 
 // ===================================
 // Logout

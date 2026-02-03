@@ -24,12 +24,17 @@ const getApiBaseUrl = () => {
 };
 const API_BASE_URL = getApiBaseUrl();
 const OPENAI_API_ENDPOINT = `${API_BASE_URL}/api/generate`;
-const OPENAI_MODEL = "gpt-3.5-turbo"; // Ose "gpt-4o-mini"
+const OPENAI_MODEL = "gpt-4o";
 
 // ===================================
 // DOCX Template Export Endpoint
 // ===================================
 const DOCX_TEMPLATE_ENDPOINT = `${API_BASE_URL}/api/render-docx`;
+
+// ===================================
+// Stripe Configuration
+// ===================================
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51SvphD494v5RvxILyEGNNc3C7nPzYkKLJXUfPaYjdBUVe90mgdJJHZnobJgBKPUHKJEHC4aTDvBJCZHqV0Vtc8k500sS1gzbDl';
 
 // ===================================
 // Stripe Payment Links (Shto linqet tuaja)

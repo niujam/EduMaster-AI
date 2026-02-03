@@ -6,6 +6,8 @@ import unicodedata
 import ast
 import time
 import uuid
+import os
+import re
 from openai import OpenAI
 from docx import Document
 from dotenv import load_dotenv
@@ -19,6 +21,7 @@ api_key = os.getenv('OPENAI_API_KEY')
 if not api_key:
   raise ValueError("OPENAI_API_KEY nuk është vendosur. Vendosni çelësin në .env ose në variablat e mjedisit.")
 client = OpenAI(api_key=api_key)
+openai_model = os.getenv('OPENAI_MODEL') or 'gpt-4o'
 
 
 def normalize_key(s: str) -> str:
@@ -44,6 +47,69 @@ def extract_json(text: str) -> dict:
       return json.loads(m.group(0))
     except Exception as e:
       raise ValueError(f"Nuk arrita të deshifroj JSON nga përgjigjja e AI: {e}\nPërgjigjja: {text}")
+
+
+def analyze_photos_with_vision(photo_list: list) -> str:
+  """
+  Use GPT-4o Vision to analyze uploaded photos and extract learning information.
+  
+  Args:
+    photo_list: List of dicts with 'base64' keys containing base64-encoded images
+  
+  Returns:
+    String with analyzed information from photos (tema, objektiva, metodologji, detyra)
+  """
+  if not photo_list or len(photo_list) == 0:
+    return ""
+  
+  # Build message content with vision
+  content = [
+    {
+      "type": "text",
+      "text": """Analizoni me kujdes fotot e tekstit shkollor. Nxirrni dhe përshkruani:
+1. Temën kryesore të librit/ushtrimit
+2. Objektivat e mësimit (kompetencat)
+3. Metodologjinë/aktivitetet sugeruar
+4. Detyrat/ushtrimin
+
+Jepni përgjigjen në JSON format me çelësa: tema, objektiva, metodologji, detyra."""
+    }
+  ]
+  
+  # Add images to content
+  for photo in photo_list:
+    if isinstance(photo, dict) and 'base64' in photo:
+      # Extract base64 data (remove data:image/...;base64, prefix if present)
+      base64_str = photo['base64']
+      if ',' in base64_str:
+        base64_str = base64_str.split(',')[1]
+      
+      content.append({
+        "type": "image_url",
+        "image_url": {
+          "url": f"data:image/jpeg;base64,{base64_str}"
+        }
+      })
+  
+  try:
+    response = client.chat.completions.create(
+      model=openai_model,
+      messages=[
+        {
+          "role": "user",
+          "content": content
+        }
+      ],
+      max_tokens=1000,
+      temperature=0.3
+    )
+    
+    analysis_text = response.choices[0].message.content
+    return analysis_text
+    
+  except Exception as e:
+    print(f"Gabim në analizimin e fotove: {e}")
+    return ""
 
 
 def fill_template_from_data(data: dict, template_path: str = 'shabllon.docx', out_path: str = 'Ditari_Final.docx'):
@@ -196,28 +262,61 @@ def fill_template_from_data(data: dict, template_path: str = 'shabllon.docx', ou
       return uniq
 
 
-def request_plan_json(tema: str) -> dict:
-  """Ask the model to return a single JSON object with predefined keys for the lesson plan."""
-  prompt = f"""
-Gjenero një plan ditor mësimi për temën: {tema}.
-Përgjigju VETËM me një objekt JSON (pa tekst tjetër) me këto çelësa:
+def request_plan_json(tema: str, photo_analysis: str = "") -> dict:
+  """
+  Ask GPT-4o to return a single JSON object with predefined keys for the lesson plan.
+  
+  Args:
+    tema: Tema e mësimit
+    photo_analysis: Analiza e fotove nga GPT-4o Vision (opsionale)
+  """
+  photo_context = ""
+  if photo_analysis:
+    photo_context = f"\n\nINFORMACION NGA FOTOT:\n{photo_analysis}\n\nShfrytëzoni këtë informacion për të pasuruar planin."
+  
+  prompt = f"""Ti je një asistent që plotëson ditarë shkollorë. 
+Gjenero një plan ditor mësimi për temën: {tema}.{photo_context}
+
+INSTRUKSIONE:
+- Lexo fotot me kujdes nëse janë dhënë
+- Nxirr informacionin për: Temën, Objektivat, Metodologjinë dhe Detyrat
+- Përgjigju VETËM me një objekt JSON (pa tekst tjetër)
+
+JSON duhet të ketë këto çelësa:
 fusha, lenda, shkalla, klasa, tema, tema_2, situata, lidhja, burimet, fjalet_kryesore, metodologjia,
 lidhja_e_temes_me_njohurite_e_meparshme, ndertimi_i_njohurive, perforcimi_i_te_nxenit,
 rezultatet, shenime_vleresuese, detyra_shtepie
 """
 
   resp = client.chat.completions.create(
-    model='gpt-3.5-turbo',
+    model=openai_model,
     messages=[{"role": "user", "content": prompt}],
-    temperature=0.2,
+    temperature=0.3,
   )
   text = resp.choices[0].message.content
   return extract_json(text)
 
 
-def krijo_ditarin(tema_kerkuar: str):
+def krijo_ditarin(tema_kerkuar: str, photo_list: list = None):
+  """
+  Create a lesson plan diary.
+  
+  Args:
+    tema_kerkuar: Tema e mësimit
+    photo_list: Optional list of photos with 'base64' keys
+  """
   print(f"AI po gjeneron ditarin për: {tema_kerkuar}...")
-  data = request_plan_json(tema_kerkuar)
+  
+  # Analyze photos if provided
+  photo_analysis = ""
+  if photo_list and len(photo_list) > 0:
+    print(f"Po analizohen {len(photo_list)} foto me GPT-4o Vision...")
+    photo_analysis = analyze_photos_with_vision(photo_list)
+    print("Fotot u analizuan me sukses.")
+  
+  # Generate plan using photos analysis
+  data = request_plan_json(tema_kerkuar, photo_analysis)
+  
   # Ensure tema field exists
   if 'tema' not in {normalize_key(k): v for k, v in data.items()}:
     data['tema'] = tema_kerkuar

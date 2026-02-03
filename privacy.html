@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politika e Privatësisë - EduMaster AI</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #212121 0%, #2d2d2d 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #2d2d2d 0%, #383838 100%);
+            border-radius: 16px;
+            padding: 50px 40px;
+            border: 1px solid rgba(16, 163, 127, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(16, 163, 127, 0.3);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #10a37f;
+        }
+
+        .back-btn {
+            background: rgba(16, 163, 127, 0.1);
+            border: 1px solid #10a37f;
+            color: #10a37f;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: rgba(16, 163, 127, 0.2);
+            transform: translateX(-2px);
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: #10a37f;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #10a37f;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(16, 163, 127, 0.3);
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #b3b3b3;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: #b3b3b3;
+        }
+
+        li {
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            background: rgba(16, 163, 127, 0.15);
+            padding: 20px;
+            border-left: 4px solid #10a37f;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .highlight strong {
+            color: #10a37f;
+        }
+
+        footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(16, 163, 127, 0.3);
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
+            }
+
+            .back-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🔒 EduMaster AI</div>
+            <a href="/" class="back-btn">← Kthehu Prapa</a>
+        </header>
+
+        <main>
+            <h1>Politika e Privatësisë</h1>
+
+            <h2>1. Përshëndetje</h2>
+            <p>
+                EduMaster AI respekton plotësisht privatësinë tuaj. Kjo dokument përshkruan se si ne mbledhim, 
+                përdorim dhe mbrojmë të dhënat tuaja personale.
+            </p>
+
+            <h2>2. Të Dhënat që Mbledhim</h2>
+            <p>Ne mbledhim vetëm të dhënat më të nevojshme për të ofruar shërbimin:</p>
+            <ul>
+                <li><strong>Email-in e regjistrimit</strong> - për qëllime të autentifikimit dhe komunikimit</li>
+                <li><strong>Emrin tuaj</strong> - për personalizimin e shërbimit</li>
+                <li><strong>Informatat e pagesës</strong> - përmes Stripe (ne nuk ruajmë numrat e kartave)</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>⚠️ Të Rëndësishme:</strong> Fotot e ditarëve tuaj <strong>NUK ruhen në serverët tanë</strong> 
+                pas përpunimit. Ato përdoren vetëm për të gjeneruar tekstin e ditarit përmes Artificial Intelligence 
+                dhe më pas fshihen përgjithmonë.
+            </div>
+
+            <h2>3. Si e Përdorim Të Dhënat Tuaja</h2>
+            <p>Të dhënat tuaja përdoren për të:</p>
+            <ul>
+                <li>Ofruar shërbimin e gjenerimit të diarëve</li>
+                <li>Procesuar pagesa dhe menaxhuar kredite</li>
+                <li>Përmirësuar eksperiencën e përdoruesit</li>
+                <li>Komunikuar në lidhje me azhurnimet ose ndryshimet e shërbimit</li>
+            </ul>
+
+            <h2>4. Sigurimi i Të Dhënave</h2>
+            <p>
+                Ne përdorim masa të larta sigurie për të mbrojtur të dhënat tuaja:
+            </p>
+            <ul>
+                <li>Enkriptim të dhënash në tranzit dhe në pushim</li>
+                <li>Autentifikimi i bazuar në Firebase (standard industrial)</li>
+                <li>Akses i kufizuar në të dhënat personale</li>
+                <li>Backup të rregullt dhe procedura e rikuperimit</li>
+            </ul>
+
+            <h2>5. Të Drejtat Tuaja</h2>
+            <p>Ju keni të drejtën të:</p>
+            <ul>
+                <li>Shikoni të dhënat tuaja personale</li>
+                <li>Kërkoni korrigjimin e të dhënave të pasaktë</li>
+                <li>Kërkoni fshirjen e llogarisë tuaj dhe të dhënave shoqëruese</li>
+            </ul>
+
+            <h2>6. Cookies dhe Tracking</h2>
+            <p>
+                Ne përdorim cookies minimale vetëm për të mbajtur sesionin tuaj aktiv. Ne nuk bëjmë tracking 
+                nga palë të treta dhe nuk ndajmë të dhënat tuaja me shërbimeve reklame.
+            </p>
+
+            <h2>7. Ndryshimet në Politikën e Privatësisë</h2>
+            <p>
+                Ne mund të azhurnojmë këtë politikë herë-herë. Nëse bëjmë ndryshime të rëndësishme, 
+                do t'ju njoftojmë përmes email-it.
+            </p>
+
+            <h2>8. Kontakti</h2>
+            <p>
+                Nëse keni pyetje rreth privatësisë tuaj ose këtij dokumenti, kontaktoni na në:
+            </p>
+            <p>
+                <strong>Email:</strong> edumaster.aihelp@gmail.com<br>
+                <strong>Adresa:</strong> EduMaster AI, Shqipëri
+            </p>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 EduMaster AI. Të gjitha të drejtat e mbrojtura.</p>
+            <p>Politika e Privatësisë u përditësua më 3 Shkurt 2026</p>
+        </footer>
+    </div>
+</body>
+</html>

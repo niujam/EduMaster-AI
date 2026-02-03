@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="style10.css">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Driver.js for User Tour -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/driver.js/1.3.1/driver.min.css">
+    <!-- Canvas Confetti for Festive Effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     
@@ -112,6 +116,10 @@
                     <i class="fas fa-user"></i>
                     <span>Profili</span>
                 </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Cilësimet</span>
+                </a>
                 <a href="#" id="buyCreditsNavBtn" class="nav-item buy-credits-nav" data-page="buyCredits" style="background: var(--accent); color: white; margin-top: auto; font-weight: 600;">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Blej Kredite</span>
@@ -176,22 +184,6 @@
                         <p>Shkarkime</p>
                     </div>
                 </div>
-
-                <div class="quick-actions">
-                    <h2>Veprime të Shpejta</h2>
-                    <div class="action-cards">
-                        <div class="action-card" data-action="generate">
-                            <i class="fas fa-magic"></i>
-                            <h3>Gjeneroni Ditar të Ri</h3>
-                            <p>Filloni tani gjenerimin me AI</p>
-                        </div>
-                        <div class="action-card" data-action="history">
-                            <i class="fas fa-history"></i>
-                            <h3>Shikoni Historikun</h3>
-                            <p>Aksesoni ditarët e mëparshëm</p>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Page: Generate -->
@@ -230,6 +222,39 @@
                         </div>
                     </div>
 
+                    <!-- Photo Upload Section -->
+                    <div class="form-group">
+                        <label><i class="fas fa-images"></i> Ngarko Fotot nga Libri (Opsionale - max 10)</label>
+                        <p class="form-help-text">💡 Ju lutem, bëjini fotot sa më të qarta dhe sipas radhës së faqeve në libër, në mënyrë që AI të gjenerojë ditarin pa gabime.</p>
+                        
+                        <div class="photo-upload-container">
+                            <input 
+                                type="file" 
+                                id="photoInput" 
+                                accept="image/*" 
+                                multiple 
+                                style="display: none;"
+                            >
+                            <button type="button" class="upload-photos-btn" id="uploadPhotosBtn">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                Ngarko Fotot
+                            </button>
+                            <span class="photo-count" id="photoCount">0/3 foto të ngarkuara</span>
+                        </div>
+
+                        <!-- Photo Preview Container -->
+                        <div class="photo-preview-container" id="photoPreviewContainer">
+                            <!-- Preview images will be inserted here -->
+                        </div>
+                    </div>
+                    <!-- Multiple Themes Checkbox -->
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="multipleThemesCheckbox" class="checkbox-input">
+                            <span class="checkbox-text">Ky ditar përmban më shumë se 1 temë mësimi (temë dypjekësh)</span>
+                        </label>
+                        <p class="checkbox-helper">Nëse e zgjidhni, AI do të integrojë të gjitha faqet e librit në një ditar të vetëm</p>
+                    </div>
                     <button type="submit" class="generate-btn" id="generateBtn">
                         <i class="fas fa-magic"></i>
                         <span>Gjeneroni Ditarin (1 Kredit)</span>
@@ -279,45 +304,41 @@
                             <p id="profileEmail">email@example.com</p>
                         </div>
                     </div>
-
-                    <div class="profile-stats">
-                        <div class="profile-stat">
-                            <i class="fas fa-coins"></i>
-                            <div>
-                                <h3 id="profileCredits">0</h3>
-                                <p>Kredite</p>
-                            </div>
-                        </div>
-                        <div class="profile-stat">
-                            <i class="fas fa-file-alt"></i>
-                            <div>
-                                <h3 id="profileGenerated">0</h3>
-                                <p>Ditarë</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Security Section -->
+                <!-- Account Security Section -->
                 <div class="security-section">
-                    <h2>Siguria e Llogarisë</h2>
-                    <div class="security-buttons">
-                        <button id="changePasswordBtn" class="security-btn">
-                            <i class="fas fa-key"></i>
-                            <span>Ndrysho Fjalëkalimin</span>
-                        </button>
-                        <button id="resetPasswordBtn" class="security-btn">
-                            <i class="fas fa-redo"></i>
-                            <span>Kam harruar Fjalëkalimin</span>
-                        </button>
+                    <h2><i class="fas fa-shield-alt"></i> Siguria e Llogarisë</h2>
+                    <div class="security-table">
+                        <div class="security-row">
+                            <div class="security-info">
+                                <p class="security-label">Email Adresa</p>
+                                <p class="security-value" id="securityEmail">email@example.com</p>
+                            </div>
+                        </div>
+                        <div class="security-row">
+                            <div class="security-info">
+                                <p class="security-label">Fjalëkalimi</p>
+                                <p class="security-value">••••••••</p>
+                            </div>
+                            <button id="changePasswordBtn" class="security-btn btn-primary">
+                                <i class="fas fa-key"></i>
+                                <span>Ndrysho</span>
+                            </button>
+                        </div>
+                        <div class="security-row">
+                            <div class="security-info">
+                                <p class="security-label">Rikthe Fjalëkalimin</p>
+                                <p class="security-value">Nëse e harruat fjalëkalimin</p>
+                            </div>
+                            <button id="resetPasswordBtn" class="security-btn btn-secondary">
+                                <i class="fas fa-redo"></i>
+                                <span>Rikthe</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Purchase History Section -->
-                <div class="purchase-history-section">
-                    <h2>Paketa Aktuale</h2>
-                    <div id="currentPackageInfo" class="package-info">
-                        <p style="text-align: center; color: #999;">Duke ngarkuar informacionin e paketës...</p>
+            </div>
                     </div>
                 </div>
 
@@ -329,11 +350,24 @@
                     <h2>Zgjidh paketën</h2>
                     <p class="credits-info">Zgjidhni paketën që ju nevojitet për të vazhduar gjenerimin</p>
                     
+                    <div id="promoNotice" class="promo-notice" style="display: none; margin-bottom: 30px;">
+                        <div class="promo-content">
+                            <span class="promo-badge">🎁 Ofertë e Limituar!</span>
+                            <p class="promo-text">Zbritje <strong id="promoPercent"></strong>% - E vlefshme deri <strong id="promoExpiry"></strong></p>
+                        </div>
+                    </div>
+                    
                     <div class="pricing-grid">
                         <div class="pricing-card">
                             <div class="pricing-badge">Starter</div>
                             <h3>10 Kredite</h3>
-                            <div class="pricing-price">€3.99</div>
+                            <div class="pricing-price-container">
+                                <div class="pricing-price" data-original="399" data-package="10">€3.99</div>
+                                <div class="pricing-discount" style="display: none;">
+                                    <span class="pricing-old">€3.99</span>
+                                    <span class="pricing-new" id="price-10">€3.99</span>
+                                </div>
+                            </div>
                             <ul class="pricing-features">
                                 <li><i class="fas fa-check"></i> 10 Ditarë</li>
                                 <li><i class="fas fa-check"></i> Eksport Word</li>
@@ -345,7 +379,13 @@
                         <div class="pricing-card popular">
                             <div class="pricing-badge">Popullor</div>
                             <h3>20 Kredite</h3>
-                            <div class="pricing-price">€6.99</div>
+                            <div class="pricing-price-container">
+                                <div class="pricing-price" data-original="699" data-package="20">€6.99</div>
+                                <div class="pricing-discount" style="display: none;">
+                                    <span class="pricing-old">€6.99</span>
+                                    <span class="pricing-new" id="price-20">€6.99</span>
+                                </div>
+                            </div>
                             <ul class="pricing-features">
                                 <li><i class="fas fa-check"></i> 20 Ditarë</li>
                                 <li><i class="fas fa-check"></i> Eksport Word</li>
@@ -357,7 +397,13 @@
                         <div class="pricing-card">
                             <div class="pricing-badge">Pro</div>
                             <h3>30 Kredite</h3>
-                            <div class="pricing-price">€8.99</div>
+                            <div class="pricing-price-container">
+                                <div class="pricing-price" data-original="899" data-package="30">€8.99</div>
+                                <div class="pricing-discount" style="display: none;">
+                                    <span class="pricing-old">€8.99</span>
+                                    <span class="pricing-new" id="price-30">€8.99</span>
+                                </div>
+                            </div>
                             <ul class="pricing-features">
                                 <li><i class="fas fa-check"></i> 30 Ditarë</li>
                                 <li><i class="fas fa-check"></i> Eksport Word</li>
@@ -369,7 +415,13 @@
                         <div class="pricing-card">
                             <div class="pricing-badge">Premium</div>
                             <h3>50 Kredite</h3>
-                            <div class="pricing-price">€12.99</div>
+                            <div class="pricing-price-container">
+                                <div class="pricing-price" data-original="1299" data-package="50">€12.99</div>
+                                <div class="pricing-discount" style="display: none;">
+                                    <span class="pricing-old">€12.99</span>
+                                    <span class="pricing-new" id="price-50">€12.99</span>
+                                </div>
+                            </div>
                             <ul class="pricing-features">
                                 <li><i class="fas fa-check"></i> 50 Ditarë</li>
                                 <li><i class="fas fa-check"></i> Eksport Word</li>
@@ -378,6 +430,135 @@
                             <button class="pricing-btn" data-package="50">Blej Tani</button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Page: Settings -->
+            <div id="settingsPage" class="page">
+                <h1>Cilësimet</h1>
+
+                <!-- Support & Contact Section -->
+                <div class="settings-section">
+                    <h2><i class="fas fa-headset"></i> Mbështetja dhe Kontakti</h2>
+                    <div class="settings-box">
+                        <p class="settings-label">Na Kontaktoni</p>
+                        <p class="settings-value"><a href="mailto:support@edumaster-ai.com" style="color: var(--accent); text-decoration: none;">support@edumaster-ai.com</a></p>
+                        <p class="settings-description">Për pyetje ose probleme, mos ngurroni të na kontaktoni përmes emailit.</p>
+                    </div>
+                </div>
+
+                <!-- Reviews Section -->
+                <div class="settings-section">
+                    <h2><i class="fas fa-star"></i> Na Vlerësoni</h2>
+                    <div class="settings-box">
+                        <p class="settings-label">Ndani përvojën tuaj</p>
+                        <a href="https://www.google.com/search?q=EduMaster+AI+reviews" target="_blank" class="settings-btn btn-primary">
+                            <i class="fas fa-google"></i>
+                            <span>Vlerësim në Google</span>
+                        </a>
+                        <p class="settings-description">Vlerësimet tuaja na ndihmojnë të përmirësohemi dhe të arrihen më shumë mësimdhënësit.</p>
+                    </div>
+                </div>
+
+                <!-- Help Center -->
+                <div class="settings-section">
+                    <h2><i class="fas fa-question-circle"></i> Qendra e Ndihmës</h2>
+                    <div class="settings-box">
+                        <div class="faq-item">
+                            <h3>Si të gjeneroj një ditar?</h3>
+                            <p>Shko në seksionin "Gjenerimi", plotëso të dhënat e orës dhe prem butonin "Gjeneroni". AI do ta krijojë ditarin në pak sekonda.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h3>Sa kostojnë kreditet?</h3>
+                            <p>Kreditet shiten në paketa të ndryshme. Çdo gjenerim kushton 1 kredit. Shikoni çmimet në seksionin "Blej Kredite".</p>
+                        </div>
+                        <div class="faq-item">
+                            <h3>Si t'i shkarkoj ditarët e mëparshëm?</h3>
+                            <p>Shko në "Historiku" dhe zgjedh ditarin që dëshiron. Do të shohësh opsionin "Eksporto në Word".</p>
+                        </div>
+                        <div class="faq-item">
+                            <h3>Si ndryshoj fjalëkalimin?</h3>
+                            <p>Shko në "Profili" > "Siguria e Llogarisë" > prem "Ndrysho Fjalëkalimin".</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legal Section -->
+                <div class="settings-section">
+                    <h2><i class="fas fa-file-contract"></i> Ligjet & Politika</h2>
+                    <div class="settings-box">
+                        <a href="#" data-page="privacy" class="settings-link">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Politika e Privatësisë</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="#" data-page="terms" class="settings-link">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Kushtet e Shërbimit</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Privacy Policy -->
+            <div id="privacyPage" class="page legal-page">
+                <h1>Politika e Privatësisë</h1>
+                <div class="legal-content">
+                    <h2>1. Hyrje</h2>
+                    <p>EduMaster AI ("ne", "nesh" ose "joni") e respekton privatësinë tuaj. Kjo politikë e privatësisë shpjegon se si mbledhim, përdorim dhe mbrojmë të dhënat tuaja personale.</p>
+
+                    <h2>2. Të Dhënat që Mbledhim</h2>
+                    <p>Ne mbledhim të dhënat e mëposhtme:</p>
+                    <ul>
+                        <li>Email-in e regjistrim</li>
+                        <li>Emrin e plotë</li>
+                        <li>Historikun e gjenerimit të ditarëve</li>
+                        <li>Informacionin e pagesave (përmes Stripe)</li>
+                    </ul>
+
+                    <h2>3. Si e Përdorim Të Dhënat Tuaja</h2>
+                    <p>Ne e përdorim të dhënat tuaja për të:</p>
+                    <ul>
+                        <li>Dhënë shërbimin</li>
+                        <li>Përmirësuar aplikacionin</li>
+                        <li>Komunikuar me ju rreth azhurnimeve</li>
+                    </ul>
+
+                    <h2>4. Sigurimi i Të Dhënave</h2>
+                    <p>Ne përdorim enkriptim dhe masa të tjera për të mbrojtur të dhënat tuaja personale.</p>
+
+                    <h2>5. Kontaktoni Nesh</h2>
+                    <p>Nëse keni pyetje rreth politikës së privatësisë, kontaktoni na në: support@edumaster-ai.com</p>
+                </div>
+            </div>
+
+            <!-- Page: Terms of Service -->
+            <div id="termsPage" class="page legal-page">
+                <h1>Kushtet e Shërbimit</h1>
+                <div class="legal-content">
+                    <h2>1. Pranimi i Kushteve</h2>
+                    <p>Duke përdorur EduMaster AI, ju pranoni këto kushte të shërbimit. Nëse nuk pajtoheni, mos përdorni aplikacionin.</p>
+
+                    <h2>2. Përdorimi i Lejuar</h2>
+                    <p>Ju mund të përdorni EduMaster AI për qëllime ligjore dhe edukative. Ndaluar është:</p>
+                    <ul>
+                        <li>Plagiarizim ose kopjim i punës së të tjerëve</li>
+                        <li>Shitja ose shpërndarja e ditarëve të gjeneruar pa lejen e mësueses</li>
+                        <li>Çfarëdo aktivity illegale</li>
+                    </ul>
+
+                    <h2>3. Kreditizimi</h2>
+                    <p>Kreditet blihen për përdorim dhe nuk rimbursohen. Kreditet nuk transferohen ndërmjet llogarive.</p>
+
+                    <h2>4. Përgjegjësia</h2>
+                    <p>EduMaster AI nuk është përgjegjëse për danimet e drejtpërdrejtë ose indirekte nga përdorimi i aplikacionit.</p>
+
+                    <h2>5. Ndryshimet e Kushteve</h2>
+                    <p>Mund të ndryshojmë këto kushte në çdo kohë. Do t'ju njoftojmë nëpërmjet emailit.</p>
+
+                    <h2>6. Kontaktoni Nesh</h2>
+                    <p>Për pyetje rreth kushteve, kontaktoni: support@edumaster-ai.com</p>
                 </div>
             </div>
 
@@ -404,10 +585,13 @@
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
+    <!-- Driver.js for User Tour -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/driver.js/1.3.1/driver.min.js"></script>
     
     <!-- App Scripts -->
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="tour.js"></script>
     <script src="app.js"></script>
     <script src="export.js"></script>
 </body>

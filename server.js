@@ -15,12 +15,117 @@ app.use(cors({
 }));
 app.get('/', (req, res) => {res.sendFile(path.join(__dirname,'index10.html'));});
 app.use(express.static(__dirname));
+
+// Serve success.html for /success route
+app.get('/success', (req, res) => {res.sendFile(path.join(__dirname,'success.html'));});
+
+// Serve privacy.html for /privacy route
+app.get('/privacy', (req, res) => {res.sendFile(path.join(__dirname,'privacy.html'));});
+
+// Serve terms.html for /terms route
+app.get('/terms', (req, res) => {res.sendFile(path.join(__dirname,'terms.html'));});
+
 // Stripe Webhook requires raw body, so we register it before JSON parsing
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
-app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Create Checkout Session for Payment
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const idToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
+    if (!idToken) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    let uid = null;
+    try {
+      const decoded = await admin.auth().verifyIdToken(idToken);
+      uid = decoded.uid;
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const { packageSize, userId } = req.body;
+
+    // Validate package size
+    const priceMap = {
+      10: 399,   // €3.99
+      20: 699,   // €6.99
+      30: 899,   // €8.99
+      50: 1299   // €12.99
+    };
+
+    const creditsMap = {
+      10: 10,
+      20: 20,
+      30: 30,
+      50: 50
+    };
+
+    if (!priceMap[packageSize] || !creditsMap[packageSize]) {
+      return res.status(400).json({ error: 'Invalid package size' });
+    }
+
+    let price = priceMap[packageSize];
+
+    // Check for active promo in Firestore
+    if (admin && firebaseInitialized) {
+      try {
+        const db = admin.firestore();
+        const promoDoc = await db.collection('settings').doc('promo_config').get();
+        
+        if (promoDoc.exists) {
+          const promoData = promoDoc.data();
+          if (promoData.is_active && promoData.discount_percent) {
+            const discountAmount = Math.round(price * (promoData.discount_percent / 100));
+            price = price - discountAmount;
+            console.log(`✅ Applied promo: ${promoData.discount_percent}% off. New price: €${(price / 100).toFixed(2)}`);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch promo config:', e.message);
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `${packageSize} Kredite - EduMaster AI`,
+              description: `${creditsMap[packageSize]} kredite për gjenerimin e diarëve`
+            },
+            unit_amount: price
+          },
+          quantity: 1
+        }
+      ],
+      mode: 'payment',
+      success_url: 'https://edumaster-ai.onrender.com/success',
+      cancel_url: 'https://edumaster-ai.onrender.com/pricing',
+      metadata: {
+        user_id: uid,
+        credits: creditsMap[packageSize]
+      }
+    });
+
+    console.log(`✅ Checkout session created for user ${uid}: ${session.id}`);
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Create session error:', error?.message || error);
+    res.status(500).json({ error: 'Failed to create checkout session', detail: error?.message });
+  }
+});
+
+// Stripe Webhook for Payment Success
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     if (!stripe || !stripeWebhookSecret) {
       return res.status(500).send('Stripe not configured');
@@ -37,11 +142,11 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      const uid = session.client_reference_id;
+      const uid = session?.metadata?.user_id;
 
       if (!uid) {
-        console.error('❌ Missing client_reference_id in session');
-        return res.status(400).send('Missing client_reference_id');
+        console.error('❌ Missing metadata.user_id in session');
+        return res.status(400).send('Missing metadata.user_id');
       }
 
       if (!firebaseInitialized) {
@@ -88,7 +193,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 app.use(bodyParser.json({ limit: '1mb' }));
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 if (!OPENAI_API_KEY) {
   console.warn('WARNING: OPENAI_API_KEY not set in environment. Set it in .env for server to work.');
 }
@@ -166,17 +271,57 @@ app.post('/api/generate', async (req, res) => {
       return res.status(402).json({ error: 'Insufficient credits', available: credits, required: creditCost });
     }
 
-    const { formData, model, prompt: clientPrompt } = req.body || {};
-    const usedModel = model || OPENAI_MODEL;
+    const { formData, prompt: clientPrompt, photos } = req.body || {};
+    const usedModel = OPENAI_MODEL;
+    const isMultipleThemes = formData?.isMultipleThemes || false;
 
     // Use client-provided prompt if available, otherwise build from formData
-    const prompt = clientPrompt || buildPromptFromForm(formData || {});
+    let prompt = clientPrompt || buildPromptFromForm(formData || {});
+    
+    // Modify prompt if multi-theme lesson is selected
+    if (isMultipleThemes) {
+      console.log('🎨 Multi-theme lesson detected - modifying prompt...');
+      prompt += '\n\nNOTA SPECIALE: Ky ditar duhet të integrojë të gjitha faqet e librit në një diari të vetëm. Përfshi tema të ndryshme por me koherencë të lartë.';
+    }
+
+    // Build message content with photos if provided
+    let messageContent = prompt;
+    if (photos && Array.isArray(photos) && photos.length > 0) {
+      console.log(`📸 Processing ${photos.length} photos for vision analysis...`);
+      
+      // Build content array for multimodal request
+      messageContent = [
+        {
+          type: "text",
+          text: prompt
+        }
+      ];
+      
+      // Add images to content
+      photos.forEach((photo, index) => {
+        if (photo && photo.base64) {
+          let base64Str = photo.base64;
+          // Remove data:image/...;base64, prefix if present
+          if (base64Str.includes(',')) {
+            base64Str = base64Str.split(',')[1];
+          }
+          
+          messageContent.push({
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Str}`
+            }
+          });
+          console.log(`✅ Photo ${index + 1} added to vision analysis`);
+        }
+      });
+    }
 
     const openaiResp = await client.chat.completions.create({
       model: usedModel,
       messages: [
-        { role: 'system', content: 'Ti je një asistent që përmbush rregullat strikte të formatit HTML të dikta nga përdoruesi. Mos shtoni tekst hyrës.' },
-        { role: 'user', content: prompt }
+        { role: 'system', content: 'Ti je një asistent që plotëson ditarë shkollorë. Të janë dhënë deri në 10 foto të faqeve të librit. Shikoje përmbajtjen sipas radhës. Nëse dallon që fotot kalojnë nga një temë mësimi në një tjetër, integrojini ato në mënyrë organike në ditarin final, duke përfshirë objektivat dhe kompetencat për të gjithë materialin e paraqitur. Përgjigju VETËM në formatin JSON që të përputhet me template-in.' },
+        { role: 'user', content: messageContent }
       ],
       temperature: 0.5,
       max_tokens: 2000
@@ -191,6 +336,7 @@ app.post('/api/generate', async (req, res) => {
         totalGenerated: admin.firestore.FieldValue.increment(1),
         lastGeneration: admin.firestore.FieldValue.serverTimestamp()
       });
+      console.log(`✅ Credits decremented for user ${uid}`);
     } catch (e) {
       console.warn('Could not update credits in Firestore:', e.message || e);
     }

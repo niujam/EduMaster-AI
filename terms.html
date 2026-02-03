@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kushtet e Shërbimit - EduMaster AI</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #212121 0%, #2d2d2d 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #2d2d2d 0%, #383838 100%);
+            border-radius: 16px;
+            padding: 50px 40px;
+            border: 1px solid rgba(16, 163, 127, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(16, 163, 127, 0.3);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #10a37f;
+        }
+
+        .back-btn {
+            background: rgba(16, 163, 127, 0.1);
+            border: 1px solid #10a37f;
+            color: #10a37f;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: rgba(16, 163, 127, 0.2);
+            transform: translateX(-2px);
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: #10a37f;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #10a37f;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(16, 163, 127, 0.3);
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #b3b3b3;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: #b3b3b3;
+        }
+
+        li {
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            background: rgba(16, 163, 127, 0.15);
+            padding: 20px;
+            border-left: 4px solid #10a37f;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .highlight strong {
+            color: #10a37f;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.15);
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .warning strong {
+            color: #ffc107;
+        }
+
+        footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(16, 163, 127, 0.3);
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
+            }
+
+            .back-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">📋 EduMaster AI</div>
+            <a href="/" class="back-btn">← Kthehu Prapa</a>
+        </header>
+
+        <main>
+            <h1>Kushtet e Shërbimit</h1>
+
+            <h2>1. Pranimi i Kushteve</h2>
+            <p>
+                Duke përdorur EduMaster AI ("Shërbimi"), ju pranoni plotësisht këto Kushte të Shërbimit. 
+                Nëse nuk pajtoheni me këto kushte, ju nuk duhet të përdorni Shërbimin.
+            </p>
+
+            <h2>2. Pëshkrimi i Shërbimit</h2>
+            <p>
+                EduMaster AI është një aplikacion që përdor Artificial Intelligence për të gjeneruar ditarë 
+                akademike bazuar në fotot e librave shkollore. Shërbimi ofrohet nëpërmjet web platform-e 
+                dhe disponohet 24/7.
+            </p>
+
+            <h2>3. Kreditet dhe Paguesa</h2>
+            <div class="highlight">
+                <strong>💳 Politika e Krediveve:</strong>
+                <ul>
+                    <li>Kreditet janë për <strong>përdorim personal vetëm</strong></li>
+                    <li>Kreditet <strong>nuk rimbursohen</strong> pasi shpenzohen</li>
+                    <li>Kreditet <strong>nuk transferohen</strong> ndërmjet llogarive</li>
+                    <li>Kreditet <strong>nuk skadojnë</strong> (janë të vlefshëm përgjithmonë)</li>
+                    <li>Blerja e krediveve është përfundimtare dhe nuk mund të anulohet pas 24 orësh</li>
+                </ul>
+            </div>
+
+            <h2>4. Përdorimi i Lejuar</h2>
+            <p>Ju mund ta përdorni Shërbimin për qëllime legale dhe edukative. Këto përfshijnë:</p>
+            <ul>
+                <li>Gjenerimi i ditarëve për qëllime personale të nxëniesit</li>
+                <li>Nxënien dhe kuptimin e lëndëve akademike</li>
+                <li>Përgatitja e raporteve akademike</li>
+            </ul>
+
+            <h2>5. Përdorimi i Ndaluar</h2>
+            <div class="warning">
+                <strong>⚠️ Ndaluar është:</strong>
+                <ul>
+                    <li><strong>Plagiarizmi:</strong> Paraqitja e ditarëve të gjeneruar si punë origjinale tuaj pa përmendje të shërbimit</li>
+                    <li><strong>Shitja ose Shpërndarja:</strong> Shitja, çmimet, ose shpërndarja e ditarëve të gjeneruar për fitim pa leje</li>
+                    <li><strong>Aktivitete Illegale:</strong> Përdorimi i Shërbimit për kërkime ose përmbajtje të paligjshme</li>
+                    <li><strong>Ofendim Akademik:</strong> Paraqitja e punës së Shërbimit në teste ose ekzamine pa lejen e mësueses</li>
+                    <li><strong>Hakimi ose Abuzim:</strong> Përpjekja për të ndërprerë ose dëmtuar Shërbimin</li>
+                </ul>
+            </div>
+
+            <h2>6. Përgjegjësia</h2>
+            <ul>
+                <li>Shërbimi ofrohet "ashtu siç është" pa asnjë garancisë të qartë ose të nënkuptuar</li>
+                <li>Ne nuk jemi përgjegjës për danimet e drejtpërdrejtë, indirekte ose të rastësishme</li>
+                <li>Përgjegjësia jonë e plotë nuk tejkalon çmimin që paguat për kredite në 30 ditët e fundit</li>
+                <li>Ne nuk garantojmë saktësinë 100% të përmbajtjes së gjeneruar</li>
+            </ul>
+
+            <h2>7. Hiqja e Llogarisë</h2>
+            <p>
+                Ne ruajmë të drejtën të heqim llogarinë tuaj nëse:
+            </p>
+            <ul>
+                <li>Shkelni këto Kushte të Shërbimit</li>
+                <li>Përdorni Shërbimin për qëllime të paligjshme</li>
+                <li>Bëni aktivitet mashtruese ose të rrezikshme</li>
+            </ul>
+
+            <h2>8. Ndryshimet në Kushte</h2>
+            <p>
+                Ne mund të azhurnojmë këto kushte në çdo kohë. Ndryshimet do të hynë në fuqi sapo të 
+                publikohen në faqen e Shërbimit. Përdorimi i vazhdueshëm i Shërbimit do të konsiderohet 
+                si pranim i ndryshimeve.
+            </p>
+
+            <h2>9. Litigim dhe Ligjet Zbatuese</h2>
+            <p>
+                Këto Kushte të Shërbimit rregullohen nga ligjet e Shqipërisë. Çdo përsellje do të 
+                zgjidhet përmes negociatës pranë gjykatave kompetente në Tiranë, Shqipëri.
+            </p>
+
+            <h2>10. Kontaktoni Nesh</h2>
+            <p>
+                Nëse keni pyetje rreth këtyre kushteve, kontaktoni na në:
+            </p>
+            <p>
+                <strong>Email:</strong> support@edumaster-ai.com<br>
+                <strong>Adresa:</strong> EduMaster AI, Shqipëri
+            </p>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 EduMaster AI. Të gjitha të drejtat e mbrojtura.</p>
+            <p>Kushtet e Shërbimit u përditësuan më 3 Shkurt 2026</p>
+        </footer>
+    </div>
+</body>
+</html>
