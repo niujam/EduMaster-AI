@@ -10,7 +10,16 @@ const PizZip = require('pizzip');
 
 const app = express();
 app.use(cors({ 
-  origin: ['http://localhost:3000', 'http://localhost:8080', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'file://','´https://edumaster-ai.onrender.com'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:8080', 
+    'http://127.0.0.1:8080', 
+    'http://127.0.0.1:3000', 
+    'http://127.0.0.1:5500', 
+    'http://localhost:5500',
+    'https://edumaster-ai.onrender.com',
+    'file://'
+  ],
   credentials: true
 }));
 app.get('/', (req, res) => {res.sendFile(path.join(__dirname,'index10.html'));});

@@ -13,14 +13,18 @@ const firebaseConfig = {
 // ===================================
 // OpenAI API Configuration (DO NOT PUT SECRET KEYS IN CLIENT)
 // ===================================
-// Auto-detect API endpoint: use ngrok if available, otherwise localhost
+// Production API endpoint
 const getApiBaseUrl = () => {
-    // If running on ngrok domain, replace with https and use /api routes
-    if (window.location.hostname.includes('ngrok')) {
-        return `https://${window.location.hostname}`;
+    // Production on Render
+    if (window.location.hostname.includes('edumaster-ai.onrender.com')) {
+        return 'https://edumaster-ai.onrender.com';
     }
     // Local development
-    return ``;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3000';
+    }
+    // Default to current origin
+    return window.location.origin;
 };
 const API_BASE_URL = getApiBaseUrl();
 const OPENAI_API_ENDPOINT = `${API_BASE_URL}/api/generate`;

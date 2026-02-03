@@ -455,27 +455,25 @@ window.removePhoto = removePhoto;
 function updateGenerateButtonState() {
     const subject = document.getElementById('subject').value.trim();
     const grade = document.getElementById('grade').value.trim();
-    const topic = document.getElementById('topic').value.trim();
     
-    // Button is enabled if: required fields are filled OR at least one photo is uploaded
-    const requiredFieldsFilled = subject && grade && topic;
+    // Button is enabled if: required fields are filled AND at least one photo is uploaded
+    const requiredFieldsFilled = subject && grade;
     const hasPhotos = uploadedPhotos.length > 0;
     
-    generateBtn.disabled = !(requiredFieldsFilled || hasPhotos);
+    generateBtn.disabled = !(requiredFieldsFilled && hasPhotos);
     
-    // Update button text based on photos
+    // Update button text
     const creditText = `${window.CONFIG.credits.perGeneration} Kredit`;
     if (uploadedPhotos.length > 0) {
         generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
     } else {
-        generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
+        generateBtn.innerHTML = `<i class="fas fa-camera"></i><span>Ngarkoni Foto (Detyruar)</span>`;
     }
 }
 
 // Listen for changes in required fields to update button state
 document.getElementById('subject').addEventListener('input', updateGenerateButtonState);
 document.getElementById('grade').addEventListener('input', updateGenerateButtonState);
-document.getElementById('topic').addEventListener('input', updateGenerateButtonState);
 
 // ===================================
 // Generate Diary Handler
@@ -493,11 +491,13 @@ generateForm.addEventListener('submit', async (e) => {
     const formData = {
         subject: document.getElementById('subject').value.trim(),
         grade: document.getElementById('grade').value.trim(),
-        topic: document.getElementById('topic').value.trim(),
-        competences: document.getElementById('competences').value.trim(),
-        duration: document.getElementById('duration').value,
         date: document.getElementById('lessonDate').value,
-        isMultipleThemes: multipleThemesCheckbox.checked
+        topic1: document.getElementById('topic1').value.trim(),
+        topic2: document.getElementById('topic2').value.trim() || '', // Empty string if not filled
+        topic: document.getElementById('topic1').value.trim(), // Keep as 'topic' for backwards compatibility
+        isMultipleThemes: multipleThemesCheckbox.checked,
+        competences: '',
+        duration: '45' // Default, AI may override
     };
     
     try {
@@ -542,34 +542,109 @@ generateForm.addEventListener('submit', async (e) => {
 // ===================================
 // Generate Diary with OpenAI
 // ===================================
+// Synchronized AI Lesson Plan Generator
 async function generateDiaryWithAI(formData) {
-    const prompt = `INSTRUKSIONE KRITIKE: Nëse janë dhënë fotot, lexoji ato me kujdes dhe nxirr informacionin për Temën, Objektivat, Metodologjinë dhe Detyrat. Pastaj, gjenero VETËM HTML template-in me këto vlesat KONKRETE zëvendësuese në vend të {...}
+    const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
+    const topic2 = formData.topic2 || '';
+    
+    const prompt = `INSTRUKSIONE KRITIKE: Gjenero një plan mësimi të plotë JSON për temën "${topic1}".
 
-ZËVENDËSIMET DETYRUESE:
-{tema_1} = ${formData.topic}
-{tema_2} = Vazhdimi i temës: ${formData.topic}
-{situata} = Një situatë praktike mësimore ku nxënësit zbatojnë konceptet e ${formData.topic}
-{fushat} = Shkenca e Natyrës, Gjuhë dhe komunikim, Teknologji, Arte
-{burimet} = Libri i nxënësit, Materiale vizuale, Tabela, Mjete didaktike, Tabela interaktive
-{kompetenca_1} = Kryen veprime themelore lidhur me ${formData.topic}
-{kompetenca_2} = Përcakton konceptet bazë të ${formData.topic} dhe aplikon njohuritë
-{kompetenca_3} = Njehson dhe analizon problemet komplekse të ${formData.topic}
-{kompetenca_4} = Përdor strategji të avancuara dhe arsyeton zgjidhjet për ${formData.topic}
-{fjalet_kyçe} = Shënime, ${formData.topic}, Vetitë, Llogaritjet, Zbatim
-{metodologjia} = Pyetje-përgjigje, Punë individuale, Punë dyshe, Diskutim i grupit
-{fase_1} = Aktivizoj njohuritë e mëparshme për ${formData.topic} me pyetje udhëheqëse. Nxënësit japin shembuj nga jeta reale. Diskutojmë në grup për të lidhur njohuritë e vjetra me temën e re. Sqarojmë termat kryesorë.
-{fase_2} = Prezantoj konceptet e reja të ${formData.topic} me shembuj konkretë dhe materiale vizuale. Nxënësit punojnë individualisht dhe në dyshe me ushtrime të shkallëzuara. Përdorim diskutim, analizë dhe demonstrim për të ndërtuar kuptimin.
-{fase_3} = Përforcojmë njohuritë për ${formData.topic} me ushtrime të ndryshme kompleksiteti. Nxënësit argumentojnë zgjidhjet dhe krahasojnë strategjitë. Bëjmë reflektim të shkurtër dhe lidhje me situata praktike.
-{n2} = Nxënësi kryen veprime themelore të ${formData.topic} me siguri
-{n3} = Nxënësi njehson dhe analizon probleme të ${formData.topic} në situata të ndryshme
-{n4} = Nxënësi përdor strategji të avancuara dhe arsyeton zgjidhjet komplekse
-{detyra} = Ushtrimi 1 fq.XX | Ushtrimi 2 fq.XX
+Tu duhet të plotësosh FIKS këto 16 fusha JSON:
 
-STRUKTURA HTML (MOS NDRYSHOJ ASNJI KUTI OSE TABELE):
+1. tema_1: "${topic1}" (kopjo si është)
+2. tema_2: ${topic2 ? `"${topic2}"` : ''} (lere bosh nëse nuk ka)
+3. situata: Problem konkret nga jeta reale të lidhur me "${topic1}"
+4. fushat: Shkenca e Natyrës, Gjuhë, Teknologji, Arte
+5. burimet: Teksti shkollor, tabela, figura,
+6. rezultatet: Rezultatet duhet te fillojne me shigjeta ne cdo rresht-> minimumi 3 kompetenca per ni teme
+7. fjalet_kyçe: VETËM 4-5 koncepte shkencorë të vërtetë (jo fjalë të rastësishme) të ndara me presje
+8. metodologjia: Pyetje-përgjigje, Punë individuale, Punë dyshe, Diskutim grupal
+9. lidhja_e_temes_me_njohurite_e_meparshme: Njohurite te marra nga nxenesit qe ndihmojne ne mesimin e temes se re
+10. ndertimi_i_njohurive: Shpjegimi mesuesit per temat e reja qe trajtohen dhe punimi i disa ushtrimeve zbatuese nga nxenesit
+11. perforcimi_i_te_nxenit: Perforcimi i njohurive te marra nga nxenesit duke punuar ushtrimet dhe problemat dhe duke analizuar pergjigjet ose zgjidhjet
+12. shenime_vleresuese: (ME SHIGJETAT ->): Tek vleresimet te ndahen sipas veshtiresive te nivelit 3 nivele N2, N3, N4
+    N2: Nxënësi kryen veprime themelore të "${topic1}" me siguri
+    N3: Nxënësi njehson dhe analizon probleme të "${topic1}" në situata të ndryshme
+    N4: Nxënësi përdor strategji të avancuara për "${topic1}"
+13. detyra: Detyrat e shtëpisë dy ushtrime sipas deshires
 
+RREGULLA KRITIKE:
+- SHIGJETAT (->): Çdo rresht tek kompetencat dhe tek shenimet vleresuese DUHET të fillojë me ->
+- TEMA 2: Nëse nuk ka temë të dytë, plotëso tema_2 me string bosh ("")
+- FJALET KYÇE: Vetëm terma shkencorë të vërtetë ne lidhje me temen - mos përfshi fjalë të rastësishme
+- JSON: Përgjigja DUHET të jetë valid JSON, vetëm JSON objekt asnjë tekst tjetër
 
+Përgjigja duhet të ketë këtë struktur:
+{
+  "tema_1": "...",
+  "tema_2": "",
+  "situata": "...",
+  "fushat": "...",
+  "burimet": "...",
+  "rezultatet": "...",
+  "fjalet_kyçe": "...",
+  "metodologjia": "...",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "...",
+  "ndertimi_i_njohurive": "...",
+  "perforcimi_i_te_nxenit": "...",
+  "shenime_vleresuese": "...",
+  "detyra": "..."
+}`;
 
+    try {
+        const response = await fetch(window.CONFIG.openai.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await firebase.auth().currentUser.getIdToken()}`
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                photoUrls: uploadedPhotos.map(p => p.url) || [],
+                formData: formData
+            })
+        });
 
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Gabim në gjenerimin e ditarit');
+        }
+
+        const result = await response.json();
+        
+        // Parse JSON response from AI
+        let parsedResult;
+        try {
+            // Try to extract JSON from the response
+            const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsedResult = JSON.parse(jsonMatch[0]);
+            } else {
+                parsedResult = JSON.parse(result.content);
+            }
+        } catch (e) {
+            console.warn('Could not parse AI response as JSON, using as is:', result.content);
+            parsedResult = { content: result.content };
+        }
+
+        // Convert JSON to HTML template with proper formatting
+        if (parsedResult && typeof parsedResult === 'object' && !parsedResult.content) {
+            return generateHTMLFromJSON(parsedResult, formData);
+        }
+        
+        return parsedResult;
+    } catch (error) {
+        console.error('AI generation error:', error);
+        throw error;
+    }
+}
+
+// Helper function to convert AI JSON response to HTML template
+function generateHTMLFromJSON(data, formData) {
+    // Ensure empty tema_2 displays as empty, not "undefined"
+    const tema_2_display = data.tema_2 && data.tema_2.trim() ? data.tema_2 : '';
+    
+    const htmlTemplate = `
 <div style="width: 100%; margin: 0; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; padding: 0;">
     <h1 style="text-align: center;">PLANIFIKIMI I ORËVE TË MËSIMIT</h1>
     <div style="text-align: right; margin-bottom: 10px; font-style: italic;">Data ${formData.date}</div>
@@ -588,30 +663,30 @@ STRUKTURA HTML (MOS NDRYSHOJ ASNJI KUTI OSE TABELE):
     <table style="width: 100%; border-collapse: collapse; border: 2px solid #000; border-top: none;">
         <tr>
             <td style="border: 1px solid #000; padding: 10px; width: 40%; vertical-align: top;">
-                <p style="margin: 0 0 8px 0;"><em>Tema 1:</em> {tema_1}</p>
-                <p style="margin: 0 0 8px 0;"><em>Tema 2:</em> {tema_2}</p>
-                <p style="margin: 0 0 8px 0;"><em>Situata e parashikuar e të nxënit:</em> {situata}</p>
+                <p style="margin: 0 0 8px 0;"><em>Tema 1:</em> ${data.tema_1 || ''}</p>
+                ${tema_2_display ? `<p style="margin: 0 0 8px 0;"><em>Tema 2:</em> ${tema_2_display}</p>` : ''}
+                <p style="margin: 0 0 8px 0;"><em>Situata e parashikuar e të nxënit:</em> ${data.situata || ''}</p>
                 <p style="margin: 0 0 6px 0;"><em>Lidhja me fushat e tjera:</em></p>
-                <p style="margin: 0 0 8px 0;">{fushat}</p>
+                <p style="margin: 0 0 8px 0;">${data.fushat || ''}</p>
                 <p style="margin: 0 0 6px 0;"><em>Burimet e informacionit dhe mjetet:</em></p>
-                <p style="margin: 0;">{burimet}</p>
+                <p style="margin: 0;">${data.burimet || ''}</p>
             </td>
             <td style="border: 1px solid #000; padding: 10px; width: 60%; vertical-align: top;">
                 <p style="margin: 0 0 8px 0;"><em>Rezultatet e të nxënit të kompetencave: Nxënësi:</em></p>
-                <p style="margin: 0;">➢ {kompetenca_1}</p>
-                <p style="margin: 0;">➢ {kompetenca_2}</p>
-                <p style="margin: 0;">➢ {kompetenca_3}</p>
-                <p style="margin: 0;">➢ {kompetenca_4}</p>
+                <p style="margin: 0;">➢ ${data.kompetenca_1 || ''}</p>
+                <p style="margin: 0;">➢ ${data.kompetenca_2 || ''}</p>
+                <p style="margin: 0;">➢ ${data.kompetenca_3 || ''}</p>
+                <p style="margin: 0;">➢ ${data.kompetenca_4 || ''}</p>
             </td>
         </tr>
         <tr>
             <td style="border: 1px solid #000; padding: 10px; width: 40%; vertical-align: top;">
                 <p style="margin: 0 0 6px 0;"><em>Metodologjia dhe veprimtaritë e nxënësve:</em></p>
-                <p style="margin: 0; text-align: center;">{metodologjia}</p>
+                <p style="margin: 0; text-align: center;">${data.metodologjia || ''}</p>
             </td>
             <td style="border: 1px solid #000; padding: 10px; width: 60%; vertical-align: top;">
                 <p style="margin: 0 0 6px 0;"><em>Fjalët kyçe:</em></p>
-                <p style="margin: 0;">{fjalet_kyçe}</p>
+                <p style="margin: 0;">${data.fjalet_kyçe || ''}</p>
             </td>
         </tr>
     </table>
@@ -621,13 +696,13 @@ STRUKTURA HTML (MOS NDRYSHOJ ASNJI KUTI OSE TABELE):
         <tr>
             <td style="border: 1px solid #000; padding: 12px;">
                 <p style="margin: 0 0 8px 0;"><strong>— Lidhja e temës me njohuritë e mëparshme:</strong></p>
-                <p style="margin: 0 0 12px 0;">{fase_1}</p>
+                <p style="margin: 0 0 12px 0; white-space: pre-wrap;">${data.lidhja_e_temes_me_njohurite_e_meparshme || ''}</p>
                 
                 <p style="margin: 0 0 8px 0;"><strong>— Ndërtimi i njohurive:</strong></p>
-                <p style="margin: 0 0 12px 0;">{fase_2}</p>
+                <p style="margin: 0 0 12px 0; white-space: pre-wrap;">${data.ndertimi_i_njohurive || ''}</p>
                 
                 <p style="margin: 0 0 8px 0;"><strong>— Përforcimi i nxënit:</strong></p>
-                <p style="margin: 0;">{fase_3}</p>
+                <p style="margin: 0; white-space: pre-wrap;">${data.perforcimi_i_te_nxenit || ''}</p>
             </td>
         </tr>
     </table>
@@ -637,126 +712,20 @@ STRUKTURA HTML (MOS NDRYSHOJ ASNJI KUTI OSE TABELE):
         <tr>
             <td style="border: 1px solid #000; padding: 12px; width: 65%; vertical-align: top;">
                 <p style="margin: 0 0 8px 0;"><strong>Shenime vlerësuese:</strong></p>
-                <p style="margin: 0 0 6px 0;"><strong>N2:</strong> {n2}</p>
-                <p style="margin: 0 0 6px 0;"><strong>N3:</strong> {n3}</p>
-                <p style="margin: 0;"><strong>N4:</strong> {n4}</p>
+                <p style="margin: 0; white-space: pre-wrap;">${data.shenime_vleresuese || ''}</p>
             </td>
             <td style="border: 1px solid #000; border-left: 2px solid #000; padding: 12px; width: 35%; vertical-align: top;">
                 <p style="margin: 0 0 8px 0;"><strong>Detyra shtëpie:</strong></p>
-                <p style="margin: 0;">{detyra}</p>
+                <p style="margin: 0;">${data.detyra || ''}</p>
             </td>
         </tr>
     </table>
 </div>
-
-PASTAJ PLOTËSOJI KËTË INFORMACION:
-- {tema_1} = ${formData.topic}
-- {tema_2} = Vazhdimi i temës mbi {tema_1}
-- {situata} = Përshkrim konkret i situatës mësimore praktike
-- {fushat} = Shkenca e Natyrës, Gjuhë dhe komunikim, Teknologji, Arte
-- {burimet} = Libri i nxënësit, Materiale vizuale, Tabela, Mjete
-- {kompetenca_1}, {kompetenca_2}, {kompetenca_3}, {kompetenca_4} = 4 kompetenca specifike për ${formData.topic}
-- {fjalet_kyçe} = Fjalë kyçe të temës të ndara me presje
-- {metodologjia} = Pyetje-përgjigje, Punë individuale, Punë dyshe, Diskutim
-- {fase_1} = 2-3 fjali praktike për "Lidhja e temës me njohuritë e mëparshme"
-- {fase_2} = 2-3 fjali praktike për "Ndërtimi i njohurive"
-- {fase_3} = 2-3 fjali praktike për "Përforcimi i nxënit"
-- {n2}, {n3}, {n4} = Përshkrimet e niveleve të arritjeve (N2, N3, N4)
-- {detyra} = Ushtrimi 1 fq.XX | Ushtrimi 2 fq.XX
-`;
-
-    // call backend proxy instead of OpenAI directly
-    let __id_token_for_server = null;
-    try { if (currentUser && typeof currentUser.getIdToken === 'function') __id_token_for_server = await currentUser.getIdToken(); } catch(e) { console.warn('Could not get id token', e); }
-    const response = await fetch(window.CONFIG.openai.endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': __id_token_for_server ? 'Bearer ' + __id_token_for_server : undefined
-        },
-        body: JSON.stringify({ 
-            prompt: prompt, 
-            formData: formData, 
-            photos: uploadedPhotos  // Include uploaded photos
-        })
-    });
-
-    if (!response.ok) {
-        let errMsg = 'Gabim në gjenerim';
-        try {
-            const errJson = await response.json();
-            if (response.status === 402) {
-                errMsg = 'Kredite të pamjaftueshme. Blini kredite të reja.';
-            } else if (errJson?.error) {
-                errMsg = errJson.error;
-            }
-        } catch (e) {}
-        throw new Error(errMsg);
-    }
-
-    const data = await response.json();
-    let generatedContent = data.content || data.html || (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-
-    // Clean markdown fences if present
-    try {
-        generatedContent = generatedContent.replace(/```html\n?/g, '').replace(/```\n?/g, '');
-    } catch (e) {}
-
-    // Fallback: Fill in any missing placeholders with default values
-    const fallbackValues = {
-        '{tema_1}': formData.topic || 'Tema e mësimit',
-        '{tema_2}': `Vazhdimi i temës: ${formData.topic}`,
-        '{situata}': `Situata praktike ku nxënësit zbatojnë konceptet e ${formData.topic} në kontekste reale dhe të përditshme`,
-        '{fushat}': formData.fields || 'Shkenca e Natyrës, Gjuhë dhe komunikim, Teknologji, Arte',
-        '{burimet}': formData.materials || 'Libri i nxënësit fq.XX-YY, Materiale vizuale, Tabela informuese, Mjete didaktike interaktive',
-        '{kompetenca_1}': `Kryen veprime themelore lidhur me ${formData.topic} duke zbatuar procesin e njohurive dhe aftësive`,
-        '{kompetenca_2}': `Përcakton konceptet bazë të ${formData.topic} dhe aplikon njohuritë në kontekste të ndryshuara`,
-        '{kompetenca_3}': `Njehson dhe analizon problemet komplekse të ${formData.topic} duke përdorur mënyra të ndryshme zgjidhje`,
-        '{kompetenca_4}': `Përdor strategji të avancuara të ${formData.topic} dhe arsyeton zgjidhjet komplekse me prova konkrete`,
-        '{fjalet_kyçe}': formData.keywords || `${formData.topic}, Koncepte, Vetitë, Llogaritjet, Zbatim praktik, Analiza`,
-        '{metodologjia}': 'Pyetje-përgjigje, Punë individuale, Punë dyshe, Diskutim grup, Demonstrim, Eksperiment praktik',
-        '{fase_1}': `Aktivizoj dhe ndërtoj mbi njohuritë paraprake të nxënësve rreth ${formData.topic}. Bëj pyetje të thjeshta dhe komplekse për të nxitur mendimin dhe për të kujtuar konceptet bazë. Nxënësit japin shembuj nga përvoja e tyre personale dhe jeta e përditshme. Krijoj diskutim në grup për të lidhur njohuritë e mëparshme me temën e re. Sqaroj termat kryesorë dhe kuptimin e tyre. Prezantoj qëllimin e orës dhe pritjet e rezultateve. Siguroj që të gjithë nxënësit të jenë të motivuar dhe të kuptojnë drejtimin e mësimit.`,
-        '{fase_2}': `Prezantoj konceptet e reja të ${formData.topic} hap pas hapi me shembuj të qartë, konkretë dhe të lidhur me jetën reale. Përdor materiale vizuale, grafikë, demonstrime praktike dhe eksperimente kur është e mundur. Nxënësit punojnë fillimisht individualisht me ushtrime të thjeshta, pastaj kalojnë në punë në dyshe për të analizuar hapat e zgjidhjes. Organizoj punë në grupe të vogla për zbatim praktik, diskutim të strategjive dhe zgjidhje të problemeve. Ecën nëpër klasa për të vëzhguar punën, për të dhënë udhëzime dhe për të ndihmuar aty ku është e nevojshme. Ftoj nxënës të shpjegojnë zgjidhjet e tyre dhe të argumentojnë mendimet. Verifikoj përgjigjet, korrigjoj keqkuptimet dhe përforcoj konceptet kryesorë gjatë gjithë procesit.`,
-        '{fase_3}': `Përforcoj dhe konsolidoj njohuritë kryesore të ${formData.topic} përmes ushtrimit të vazhdueshëm me ushtrime të shkallëzuara sipas nivelit të vështirësisë. Nxënësit punojnë në dyshe ose grupe me probleme më komplekse që kërkojnë mendim kritik. Ftoj nxënësit të argumentojnë zgjidhjet, të krahasojnë metoda të ndryshme dhe të diskutojnë avantazhet dhe disavantazhet e secilit përqasje. Bëj pyetje të thella për kontroll të kuptimit dhe për të nxitur reflektimin. Përmbledh pikat kyçe të mësimit dhe lidh temën me situata dhe aplikime praktike reale. Jap feedback të menjëhershëm dhe konstruktiv. Vlerësoj njohuritë e fituara dhe përgatit nxënësit për hapat e ardhshëm.`,
-        '{n2}': `Nxënësi kryen veprime themelore të ${formData.topic} me siguri duke zbatuar rregullat e mësuara`,
-        '{n3}': `Nxënësi njehson dhe analizon probleme të ${formData.topic} në situata të ndryshme duke zbatuar procese zgjidhjeje`,
-        '{n4}': `Nxënësi përdor strategji të avancuara të ${formData.topic} dhe arsyeton zgjidhjet komplekse me prova dhe shpjegime të plota`,
-        '{detyra}': formData.homework || 'Ushtrimi 1 fq.XX - Përcaktim konceptesh | Ushtrimi 2 fq.YY - Zbatime praktike'
-    };
-
-    for (const [placeholder, value] of Object.entries(fallbackValues)) {
-        const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        generatedContent = generatedContent.replace(regex, value);
-    }
-
-    // Store data for DOCX template export
-    try {
-        const templateData = {
-            fusha: formData.subject || '',
-            lenda: formData.subject || '',
-            shkalla: formData.grade || '',
-            klasa: formData.grade || '',
-            tema_1: fallbackValues['{tema_1}'] || formData.topic || '',
-            tema_2: fallbackValues['{tema_2}'] || `Vazhdimi i temës: ${formData.topic}`,
-            situata: fallbackValues['{situata}'] || '',
-            lidhja: fallbackValues['{fushat}'] || 'Shkenca e Natyrës, Gjuhë dhe komunikim, Teknologji, Arte',
-            burimet: fallbackValues['{burimet}'] || '',
-            rezultatet: `${fallbackValues['{kompetenca_1}'] || ''}\n${fallbackValues['{kompetenca_2}'] || ''}\n${fallbackValues['{kompetenca_3}'] || ''}\n${fallbackValues['{kompetenca_4}'] || ''}`,
-            fjalet_kyce: fallbackValues['{fjalet_kyçe}'] || fallbackValues['{fjalet_kyce}'] || '',
-            metodologjia: fallbackValues['{metodologjia}'] || '',
-            lidhja_e_temes_me_njohurite_e_tjera: fallbackValues['{fase_1}'] || '',
-            ndertimi_i_njohurive: fallbackValues['{fase_2}'] || '',
-            perforcimi_i_te_nxenit: fallbackValues['{fase_3}'] || '',
-            shenime_vleresuese: `N2: ${fallbackValues['{n2}'] || ''}\nN3: ${fallbackValues['{n3}'] || ''}\nN4: ${fallbackValues['{n4}'] || ''}`,
-            detyra_shtepie: fallbackValues['{detyra}'] || ''
-        };
-        window.lastTemplateData = templateData;
-    } catch (e) {
-        console.warn('Could not build template data:', e);
-    }
-
-    return generatedContent.trim();
+    `;
+    
+    return htmlTemplate;
 }
+
 // ===================================
 // Copy to Clipboard
 // ===================================
@@ -847,12 +816,9 @@ function viewHistoryItem(id) {
     // Navigate to generate page
     navigateToPage('generate');
     
-    // Fill form
+    // Fill form (only existing fields)
     document.getElementById('subject').value = item.subject;
     document.getElementById('grade').value = item.grade;
-    document.getElementById('topic').value = item.topic;
-    document.getElementById('competences').value = item.competences;
-    document.getElementById('duration').value = item.duration;
     document.getElementById('lessonDate').value = item.date;
     
     // Show result
