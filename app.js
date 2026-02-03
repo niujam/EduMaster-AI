@@ -247,8 +247,6 @@ function navigateToPage(pageName) {
     } else {
         console.error(`Page not found: ${pageName}Page`);
     }
-        activePage.classList.add('active');
-    }
     
     // Show/hide back button
     if (pageName === 'home') {
@@ -256,12 +254,7 @@ function navigateToPage(pageName) {
     } else {
         backBtn.style.display = 'flex';
     }
-    
-    // Close sidebar on mobile
-    if (window.innerWidth <= 968) {
-        sidebar.classList.remove('open');
-        document.querySelector('.sidebar-overlay')?.remove();
-    }
+}
 
 // Back button
 backBtn.addEventListener('click', () => {
