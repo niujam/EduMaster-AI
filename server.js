@@ -117,8 +117,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
         }
       ],
       mode: 'payment',
-      success_url: 'https://edumaster-ai.onrender.com/success',
-      cancel_url: 'https://edumaster-ai.onrender.com/pricing',
+      success_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/success`,
+      cancel_url: `${process.env.BASE_URL || 'https://edumaster-ai.onrender.com'}/pricing`,
       metadata: {
         user_id: uid,
         credits: creditsMap[packageSize]

@@ -49,31 +49,36 @@ const creditsCount = document.getElementById('creditsCount');
 const creditsDisplay = document.getElementById('creditsDisplay');
 const profileCredits = document.getElementById('profileCredits');
 
+// Safety check for critical elements
+if (!creditsCount || !creditsDisplay || !profileCredits) {
+    console.warn('⚠️ Some credit display elements are missing');
+}
+
 // ===================================
 // Initialize App
 // ===================================
 function initializeApp(user) {
     currentUser = user;
     
-    // Set user name
+    // Set user name with safety checks
     const userName = document.getElementById('userName');
     const profileName = document.getElementById('profileName');
     const profileEmail = document.getElementById('profileEmail');
     const securityEmail = document.getElementById('securityEmail');
     
-    userName.textContent = user.displayName || 'Përdorues';
-    profileName.textContent = user.displayName || 'Përdorues';
-    profileEmail.textContent = user.email;
-    if (securityEmail) securityEmail.textContent = user.email;
+    const displayName = user.displayName || 'Përdorues';
+    const email = user.email || '';
+    
+    if (userName) userName.textContent = displayName;
+    if (profileName) profileName.textContent = displayName;
+    if (profileEmail) profileEmail.textContent = email;
+    if (securityEmail) securityEmail.textContent = email;
     
     // Load user data
     loadUserData();
     
     // Setup real-time listeners
     setupRealtimeListeners();
-    
-    // Set default date for lesson
-    document.getElementById('lessonDate').valueAsDate = new Date();
     
     // Check and start tour if user is new
     if (typeof checkAndStartTour === 'function') {
@@ -85,6 +90,11 @@ function initializeApp(user) {
 // Load User Data
 // ===================================
 async function loadUserData() {
+    if (!currentUser) {
+        console.warn('No user logged in, skipping data load');
+        return;
+    }
+    
     try {
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         
@@ -94,6 +104,16 @@ async function loadUserData() {
             
             updateCreditsDisplay(userCredits);
             updateStats(userData);
+        } else {
+            console.log('User document does not exist, creating new user profile');
+            // Create initial user document
+            await db.collection('users').doc(currentUser.uid).set({
+                credits: 0,
+                totalGenerated: 0,
+                totalDownloads: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            updateCreditsDisplay(0);
         }
         
         // Load history
@@ -101,7 +121,10 @@ async function loadUserData() {
         
     } catch (error) {
         console.error('Error loading user data:', error);
-        showToast('Gabim në ngarkimin e të dhënave.', 'error');
+        // Don't show error toast on initial load to avoid annoying users
+        console.warn('Failed to load user data, will retry automatically');
+        // Retry after 2 seconds
+        setTimeout(() => loadUserData(), 2000);
     }
 }
 
@@ -161,18 +184,22 @@ window.addCredits = addCredits;
 // Update Credits Display
 // ===================================
 function updateCreditsDisplay(credits) {
-    creditsCount.textContent = credits;
-    creditsDisplay.textContent = credits;
-    profileCredits.textContent = credits;
+    if (creditsCount) creditsCount.textContent = credits;
+    if (creditsDisplay) creditsDisplay.textContent = credits;
+    if (profileCredits) profileCredits.textContent = credits;
 }
 
 // ===================================
 // Update Stats
 // ===================================
 function updateStats(userData) {
-    document.getElementById('totalGenerated').textContent = userData.totalGenerated || 0;
-    document.getElementById('totalDownloads').textContent = userData.totalDownloads || 0;
-    document.getElementById('profileGenerated').textContent = userData.totalGenerated || 0;
+    const totalGenerated = document.getElementById('totalGenerated');
+    const totalDownloads = document.getElementById('totalDownloads');
+    const profileGenerated = document.getElementById('profileGenerated');
+    
+    if (totalGenerated) totalGenerated.textContent = userData.totalGenerated || 0;
+    if (totalDownloads) totalDownloads.textContent = userData.totalDownloads || 0;
+    if (profileGenerated) profileGenerated.textContent = userData.totalGenerated || 0;
 }
 
 // ===================================
@@ -491,7 +518,7 @@ generateForm.addEventListener('submit', async (e) => {
     const formData = {
         subject: document.getElementById('subject').value.trim(),
         grade: document.getElementById('grade').value.trim(),
-        date: document.getElementById('lessonDate').value,
+        date: new Date().toLocaleDateString('sq-AL', { year: 'numeric', month: 'long', day: 'numeric' }),
         topic1: document.getElementById('topic1').value.trim(),
         topic2: document.getElementById('topic2').value.trim() || '', // Empty string if not filled
         topic: document.getElementById('topic1').value.trim(), // Keep as 'topic' for backwards compatibility
@@ -819,7 +846,6 @@ function viewHistoryItem(id) {
     // Fill form (only existing fields)
     document.getElementById('subject').value = item.subject;
     document.getElementById('grade').value = item.grade;
-    document.getElementById('lessonDate').value = item.date;
     
     // Show result
     generatedContent.innerHTML = item.content;
@@ -886,13 +912,15 @@ async function blejKredite(sasia) {
 
         const data = await response.json();
         if (data.url) {
+            // Redirect to Stripe checkout
             window.location.href = data.url;
         } else {
-            throw new Error('URL e pagesës nuk u gjendet');
+            throw new Error('URL e pagesës nuk u gjet. Ju lutem provoni përsëri.');
         }
     } catch (error) {
         console.error('Payment error:', error);
-        showToast(`Gabim: ${error.message}`, 'error');
+        const errorMsg = error.message || 'Gabim në krijimin e pagesës. Kontrolloni lidhjen me internetin dhe provoni përsëri.';
+        showToast(errorMsg, 'error');
     } finally {
         showLoading(false);
     }
@@ -948,20 +976,29 @@ async function loadPromoConfig() {
                 };
                 
                 packages.forEach(pkg => {
-                    const originalPrice = originalPrices[pkg];
-                    const discountedPrice = (originalPrice * (1 - discountPercent / 100)).toFixed(2);
-                    
-                    // Update display
-                    const priceContainer = document.querySelector(`[data-package="${pkg}"]`).closest('.pricing-card').querySelector('.pricing-price-container');
-                    const regularPrice = priceContainer.querySelector('.pricing-price');
-                    const discountDiv = priceContainer.querySelector('.pricing-discount');
-                    const discountedPriceSpan = document.getElementById(`price-${pkg}`);
-                    
-                    regularPrice.style.display = 'none';
-                    discountDiv.style.display = 'flex';
-                    discountedPriceSpan.textContent = `€${discountedPrice}`;
-                    
-                    console.log(`✅ Price ${pkg}: €${originalPrice} → €${discountedPrice}`);
+                    try {
+                        const originalPrice = originalPrices[pkg];
+                        const discountedPrice = (originalPrice * (1 - discountPercent / 100)).toFixed(2);
+                        
+                        // Update display
+                        const button = document.querySelector(`[data-package="${pkg}"]`);
+                        if (!button) return;
+                        
+                        const priceContainer = button.closest('.pricing-card').querySelector('.pricing-price-container');
+                        if (!priceContainer) return;
+                        
+                        const regularPrice = priceContainer.querySelector('.pricing-price');
+                        const discountDiv = priceContainer.querySelector('.pricing-discount');
+                        const discountedPriceSpan = document.getElementById(`price-${pkg}`);
+                        
+                        if (regularPrice) regularPrice.style.display = 'none';
+                        if (discountDiv) discountDiv.style.display = 'flex';
+                        if (discountedPriceSpan) discountedPriceSpan.textContent = `€${discountedPrice}`;
+                        
+                        console.log(`✅ Price ${pkg}: €${originalPrice} → €${discountedPrice}`);
+                    } catch (err) {
+                        console.warn(`Could not update price for package ${pkg}:`, err.message);
+                    }
                 });
             }
         }
@@ -1088,13 +1125,22 @@ window.navigateToPage = function(pageName) {
 // ===================================
 // Legal Pages Navigation
 // ===================================
-document.querySelectorAll('[data-page="privacy"], [data-page="terms"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const page = link.dataset.page;
-        navigateToPage(page);
+function setupLegalLinks() {
+    document.querySelectorAll('[data-page="privacy"], [data-page="terms"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.dataset.page;
+            navigateToPage(page);
+        });
     });
-});
+}
+
+// Setup legal links on page load and after DOM changes
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupLegalLinks);
+} else {
+    setupLegalLinks();
+}
 
 // ===================================
 // Logout
