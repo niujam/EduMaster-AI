@@ -232,10 +232,13 @@ navItems.forEach(item => {
 function navigateToPage(pageName) {
     console.log(`Navigating to page: ${pageName}`);
     
-    // Close sidebar on mobile
-    if (window.innerWidth <= 968) {
-        sidebar.classList.remove('open');
-        document.querySelector('.sidebar-overlay')?.remove();
+    // Close sidebar on navigation
+    sidebar.classList.remove('open');
+    document.querySelector('.sidebar-overlay')?.remove();
+    
+    // Hide hamburger toggle when navigation happens (except on mobile)
+    if (window.innerWidth > 968) {
+        document.body.classList.remove('sidebar-closed');
     }
     
     // Update active nav item (only for sidebar items)
@@ -266,7 +269,56 @@ function navigateToPage(pageName) {
     }
 }
 
-// Back button
+// ===================================
+// Sidebar Toggle Button
+// ===================================
+const sidebarToggle = document.querySelector('.sidebar-toggle') || createSidebarToggle();
+
+function createSidebarToggle() {
+    const toggle = document.createElement('button');
+    toggle.className = 'sidebar-toggle';
+    toggle.innerHTML = '☰';
+    toggle.type = 'button';
+    toggle.addEventListener('click', toggleSidebar);
+    document.body.appendChild(toggle);
+    return toggle;
+}
+
+function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    document.body.classList.toggle('sidebar-closed');
+    
+    // Add overlay on mobile when sidebar opens
+    if (window.innerWidth <= 968 && sidebar.classList.contains('open')) {
+        const overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.remove();
+        });
+        document.body.appendChild(overlay);
+    }
+}
+
+// Close sidebar when clicking on nav items
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth <= 968) {
+            sidebar.classList.remove('open');
+            document.querySelector('.sidebar-overlay')?.remove();
+        }
+    });
+});
+
+// Add toggle button if it doesn't exist
+if (!document.querySelector('.sidebar-toggle')) {
+    const toggle = document.createElement('button');
+    toggle.className = 'sidebar-toggle';
+    toggle.innerHTML = '☰';
+    toggle.type = 'button';
+    toggle.addEventListener('click', toggleSidebar);
+    document.body.appendChild(toggle);
+}
 backBtn.addEventListener('click', () => {
     navigateToPage('home');
 });
@@ -978,7 +1030,7 @@ async function loadPromoConfig() {
             
             if (promoData.is_active && promoData.discount_percent) {
                 const discountPercent = promoData.discount_percent;
-                const expiryDate = promoData.expiry_date;
+                let expiryDate = promoData.expiry_date;
                 
                 // Show promo notice
                 const promoNotice = document.getElementById('promoNotice');
@@ -986,15 +1038,39 @@ async function loadPromoConfig() {
                     promoNotice.style.display = 'block';
                     document.getElementById('promoPercent').textContent = discountPercent;
                     
-                    // Format expiry date
+                    // Format expiry date - with better error handling
                     if (expiryDate) {
-                        const expiryMs = expiryDate.toMillis ? expiryDate.toMillis() : expiryDate.getTime();
-                        const expiryDateObj = new Date(expiryMs);
-                        const formattedDate = expiryDateObj.toLocaleDateString('sq-AL', { 
-                            day: 'numeric', 
-                            month: 'long'
-                        });
-                        document.getElementById('promoExpiry').textContent = formattedDate;
+                        try {
+                            let expiryMs;
+                            // Handle Firebase Timestamp
+                            if (expiryDate && typeof expiryDate === 'object') {
+                                if (typeof expiryDate.toMillis === 'function') {
+                                    expiryMs = expiryDate.toMillis();
+                                } else if (typeof expiryDate.getTime === 'function') {
+                                    expiryMs = expiryDate.getTime();
+                                } else if (expiryDate._seconds) {
+                                    // Firebase timestamp format
+                                    expiryMs = expiryDate._seconds * 1000;
+                                } else {
+                                    expiryMs = new Date(expiryDate).getTime();
+                                }
+                            } else if (typeof expiryDate === 'string') {
+                                expiryMs = new Date(expiryDate).getTime();
+                            } else if (typeof expiryDate === 'number') {
+                                expiryMs = expiryDate;
+                            }
+                            
+                            if (expiryMs && !isNaN(expiryMs)) {
+                                const expiryDateObj = new Date(expiryMs);
+                                const formattedDate = expiryDateObj.toLocaleDateString('sq-AL', { 
+                                    day: 'numeric', 
+                                    month: 'long'
+                                });
+                                document.getElementById('promoExpiry').textContent = formattedDate;
+                            }
+                        } catch (e) {
+                            console.warn('Could not format expiry date:', e);
+                        }
                     }
                 }
                 
