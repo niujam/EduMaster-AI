@@ -650,49 +650,32 @@ async function generateDiaryWithAI(formData) {
     const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
     const topic2 = formData.topic2 || '';
     
-    const prompt = `INSTRUKSIONE KRITIKE: Gjenero një plan mësimi të plotë JSON për temën "${topic1}".
+  const prompt = `JE NJE EKSPERT I KURRIKULËS ARSIMORE SHQIPTARE.
+Gjenero një plan mësimi profesional JSON për temën: "${topic1}" ${topic2 ? `dhe "${topic2}"` : ""}.
 
-Tu duhet të plotësosh FIKS këto 16 fusha JSON:
-
-1. tema_1: "${topic1}" (kopjo si është)
-2. tema_2: ${topic2 ? `"${topic2}"` : ''} (lere bosh nëse nuk ka)
-3. situata: Problem konkret nga jeta reale të lidhur me "${topic1}"
-4. fushat: Shkenca e Natyrës, Gjuhë, Teknologji, Arte
-5. burimet: Teksti shkollor, tabela, figura,
-6. rezultatet: Rezultatet duhet te fillojne me shigjeta ne cdo rresht-> minimumi 3 kompetenca per ni teme
-7. fjalet_kyçe: VETËM 4-5 koncepte shkencorë të vërtetë (jo fjalë të rastësishme) të ndara me presje
-8. metodologjia: Pyetje-përgjigje, Punë individuale, Punë dyshe, Diskutim grupal
-9. lidhja_e_temes_me_njohurite_e_meparshme: Njohurite te marra nga nxenesit qe ndihmojne ne mesimin e temes se re
-10. ndertimi_i_njohurive: Shpjegimi mesuesit per temat e reja qe trajtohen dhe punimi i disa ushtrimeve zbatuese nga nxenesit
-11. perforcimi_i_te_nxenit: Perforcimi i njohurive te marra nga nxenesit duke punuar ushtrimet dhe problemat dhe duke analizuar pergjigjet ose zgjidhjet
-12. shenime_vleresuese: (ME SHIGJETAT ->): Tek vleresimet te ndahen sipas veshtiresive te nivelit 3 nivele N2, N3, N4
-    N2: Nxënësi kryen veprime themelore të "${topic1}" me siguri
-    N3: Nxënësi njehson dhe analizon probleme të "${topic1}" në situata të ndryshme
-    N4: Nxënësi përdor strategji të avancuara për "${topic1}"
-13. detyra: Detyrat e shtëpisë dy ushtrime sipas deshires
-
-RREGULLA KRITIKE:
-- SHIGJETAT (->): Çdo rresht tek kompetencat dhe tek shenimet vleresuese DUHET të fillojë me ->
-- TEMA 2: Nëse nuk ka temë të dytë, plotëso tema_2 me string bosh ("")
-- FJALET KYÇE: Vetëm terma shkencorë të vërtetë ne lidhje me temen - mos përfshi fjalë të rastësishme
-- JSON: Përgjigja DUHET të jetë valid JSON, vetëm JSON objekt asnjë tekst tjetër
-
-Përgjigja duhet të ketë këtë struktur:
+STRUKTURA E OBJEKTIT JSON (13 FUSHA):
 {
-  "tema_1": "...",
-  "tema_2": "",
-  "situata": "...",
-  "fushat": "...",
-  "burimet": "...",
-  "rezultatet": "...",
-  "fjalet_kyçe": "...",
-  "metodologjia": "...",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "...",
-  "ndertimi_i_njohurive": "...",
-  "perforcimi_i_te_nxenit": "...",
-  "shenime_vleresuese": "...",
-  "detyra": "..."
-}`;
+  "tema_1": "${topic1}",
+  "tema_2": "${topic2 || ""}",
+  "situata": "Krijo një situatë konkrete praktike/problemore që motivon nxënësit për këtë temë.",
+  "fushat": "Përcakto fushat që lidhen saktë me temën (p.sh. Shoqëria dhe Mjedisi, Shkencat etj.)",
+  "burimet": "Rendit mjetet: Libri i nxënësit, tabela, mjete digjitale, materiale konkrete.",
+  "rezultatet": "Gjenero 4-6 rezultate të nxëni sipas kompetencave. SECILI rresht duhet të fillojë me '-> ' dhe të përfundojë me '\\n'.",
+  "fjalet_kyçe": "Rendit 5 terma teknikë/shkencorë kryesorë të ndarë me presje.",
+  "metodologjia": "Përdor metoda aktive: Pyetje-përgjigje, Stuhi mendimesh, Punë në grupe.",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "Përshkruaj shkurt çfarë duhet të dinë nxënësit për të kuptuar këtë mësim.",
+  "ndertimi_i_njohurive": "Shpjego konceptet e reja dhe jep 2 shembuj/ushtrime të zgjidhura hap pas hapi.",
+  "perforcimi_i_te_nxenit": "Kërko nga nxënësit të zgjidhin një detyrë ose të argumentojnë një koncept.",
+  "shenime_vleresuese": "-> N2: Nxënësi përshkruan/emërton konceptet bazë.\\n-> N3: Nxënësi analizon dhe zbaton njohuritë.\\n-> N4: Nxënësi argumenton dhe zgjidh situata komplekse.",
+  "detyra": "Jep detyra specifike nga libri ose kërkim individual."
+}
+
+RREGULLAT KRITIKE:
+1. UNIVERSALITETI: Përshtat përmbajtjen në varësi të lëndës (nëse tema është Histori, përdor fakte; nëse është Matematikë, përdor formula).
+2. FORMATI: Kthe vetëm JSON-in e pastër. Mos shkruaj asnjë tekst tjetër.
+3. NDARJA: Përdor '\\n' për të krijuar rreshta të rinj brenda fushave 'rezultatet' dhe 'shenime_vleresuese' që të dalin bukur në Word.`;
+
+
 
     try {
         const response = await fetch(window.CONFIG.openai.endpoint, {
