@@ -1077,16 +1077,16 @@ async function loadPromoConfig() {
                 // Update prices
                 const packages = [10, 20, 30, 50];
                 const originalPrices = {
-                    10: 3.99,
-                    20: 6.99,
-                    30: 8.99,
-                    50: 12.99
+                    10: 399,    // €3.99
+                    20: 699,    // €6.99
+                    30: 899,    // €8.99
+                    50: 1299    // €12.99
                 };
                 
                 packages.forEach(pkg => {
                     try {
-                        const originalPrice = originalPrices[pkg];
-                        const discountedPrice = (originalPrice * (1 - discountPercent / 100)).toFixed(2);
+                        const originalPrice = originalPrices[pkg]; // në cents
+                        const discountedPrice = Math.round(originalPrice * (1 - discountPercent / 100));
                         
                         // Update display
                         const button = document.querySelector(`[data-package="${pkg}"]`);
@@ -1098,18 +1098,19 @@ async function loadPromoConfig() {
                         const regularPrice = priceContainer.querySelector('.pricing-price');
                         const discountDiv = priceContainer.querySelector('.pricing-discount');
                         const oldPriceSpan = discountDiv?.querySelector('.pricing-old');
-                        const discountedPriceSpan = discountDiv?.querySelector('.pricing-new') || document.getElementById(`price-${pkg}`);
+                        const discountedPriceSpan = discountDiv?.querySelector('.pricing-new');
                         
                         // Show discount layout with old price struck through
                         if (regularPrice) regularPrice.style.display = 'none';
                         if (discountDiv) {
                             discountDiv.style.display = 'flex';
-                            const euro = (originalPrice / 100).toFixed(2);
-                            if (oldPriceSpan) oldPriceSpan.textContent = `€${euro}`;
+                            const originalEuro = (originalPrice / 100).toFixed(2);
+                            const discountedEuro = (discountedPrice / 100).toFixed(2);
+                            if (oldPriceSpan) oldPriceSpan.textContent = `€${originalEuro}`;
+                            if (discountedPriceSpan) discountedPriceSpan.textContent = `€${discountedEuro}`;
                         }
-                        if (discountedPriceSpan) discountedPriceSpan.textContent = `€${discountedPrice}`;
                         
-                        console.log(`✅ Price ${pkg}: €${originalPrice} → €${discountedPrice}`);
+                        console.log(`✅ Price ${pkg}: €${(originalPrice/100).toFixed(2)} → €${(discountedPrice/100).toFixed(2)}`);
                     } catch (err) {
                         console.warn(`Could not update price for package ${pkg}:`, err.message);
                     }
