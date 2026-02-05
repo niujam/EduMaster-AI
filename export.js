@@ -11,16 +11,21 @@ exportBtn.addEventListener('click', async () => {
     try {
         showLoading(true);
         
-        const templateData = window.lastTemplateData;
+        // Priority: window.currentDiary (new variable), then window.lastTemplateData, then generatedContent
+        const templateData = window.currentDiary || window.lastTemplateData;
         const content = generatedContent.innerHTML;
         
-        if (templateData) {
+        console.log('Export attempt - templateData:', templateData, 'content length:', content?.length);
+        
+        if (templateData && templateData.tema_1) {
+            console.log('✅ Using templateData for export');
             await exportTemplateDocx(templateData);
+        } else if (!content || content.trim() === '') {
+            console.error('❌ No content found - templateData:', templateData, 'content:', content);
+            showToast('Nuk ka përmbajtje për të eksportuar. Gjenerojeni ditarin fillimisht.', 'error');
+            return;
         } else {
-            if (!content || content.trim() === '') {
-                showToast('Nuk ka përmbajtje për të eksportuar. Gjenerojeni ditarin fillimisht.', 'error');
-                return;
-            }
+            console.log('✅ Using HTML content for export');
             // Fallback: export HTML content as DOC
             await exportHTMLContentAsDocx(content);
         }
@@ -31,6 +36,7 @@ exportBtn.addEventListener('click', async () => {
                 await db.collection('users').doc(currentUser.uid).update({
                     totalDownloads: firebase.firestore.FieldValue.increment(1)
                 });
+                console.log('✅ Download count updated');
             }
         } catch (e) {
             console.warn('Could not update download count:', e);

@@ -285,8 +285,18 @@ function createSidebarToggle() {
 }
 
 function toggleSidebar() {
+    const isMobile = window.innerWidth <= 768;
+    
     sidebar.classList.toggle('closed');
     mainContent.classList.toggle('full-width');
+    
+    // Mobile-specific: Force display: block !important
+    if (isMobile && !sidebar.classList.contains('closed')) {
+        sidebar.style.display = 'block !important';
+        sidebar.style.zIndex = '9998 !important';
+    } else if (isMobile) {
+        sidebar.style.display = 'none';
+    }
     
     // Save state to localStorage
     const isClosed = sidebar.classList.contains('closed');
@@ -297,9 +307,11 @@ function toggleSidebar() {
     toggleButtons.forEach(btn => {
         btn.innerHTML = isClosed ? '→' : '☰';
         btn.title = isClosed ? 'Hap Sidebar-in' : 'Mbyll Sidebar-in';
+        btn.style.display = 'block !important';
+        btn.style.zIndex = '9999 !important';
     });
     
-    console.log('Sidebar toggled:', isClosed ? 'closed' : 'open');
+    console.log('Sidebar toggled:', isClosed ? 'closed' : 'open', '(Mobile:', isMobile, ')');
 }
 
 // Auto-close sidebar when clicking nav items (all devices)
@@ -331,13 +343,23 @@ if (!document.querySelector('.sidebar-toggle')) {
     toggle.className = 'sidebar-toggle';
     toggle.innerHTML = '☰';
     toggle.type = 'button';
-    toggle.style.zIndex = '9999'; // Ensure visibility on mobile
-    toggle.addEventListener('click', toggleSidebar);
-    toggle.addEventListener('touchstart', (e) => {
+    toggle.style.cssText = 'z-index: 9999 !important; display: block !important;';
+    toggle.setAttribute('data-touch-target', 'true');
+    
+    // Handle both click and touch events
+    const handleToggle = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        console.log('Toggle clicked/touched');
         toggleSidebar();
-    }, { passive: false });
+    };
+    
+    toggle.addEventListener('click', handleToggle);
+    toggle.addEventListener('touchstart', handleToggle, { passive: false });
+    toggle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+    
     document.body.appendChild(toggle);
+    console.log('✅ Sidebar toggle button created');
 }
 backBtn.addEventListener('click', () => {
     navigateToPage('home');
@@ -660,35 +682,29 @@ async function generateDiaryWithAI(formData) {
     
   const prompt = `Je një mësues ekspert që krijon planifikime mësimore të detajuara.
 
-UDHËZIME STRIKTE:
-1. ANALIZO VETËM foton e ngarkuar. Injoro çdo tekst që nuk vjen nga foto.
-2. Nëse sheh VARGJE në foto, shkruaj për vargje. Nëse sheh EKUACIONE, shkruaj për ekuacione. Bazohu 100% te ajo që shikon.
-3. Për këto 3 fusha, shkruaj MINIMUM 100 FJALË secila me detaje konkrete:
-   - lidhja_e_temes_me_njohurite_e_meparshme: Shpjego SAKTËSISHT cilat koncepte nga orët e kaluara lidhen me temën. Jep shembuj specifik.
-   - ndertimi_i_njohurive: Shkruaj HAPAT e mësuesit hap-pas-hapi. Si ndahen nxënësit në grupe? Çfarë pyetjesh specifike bën mësuesi? Si zgjidhen ushtrimet e fotos në detaje?
-   - perforcimi_i_te_nxenit: Jep ushtrime të ngjashme me ato të fotos. Shpjego si mësuesi i kontrollon nxënësit gjatë punës.
+UDHËZIME KRYESORE:
+1. ANALIZO foton e ngarkuar. Përshkruaj ecurinë e orës në pika të gjata.
+2. Përmend mësuesin, nxënësit, mjetet dhe aktivitetet e shikuara në foto.
+3. Përshkruaj hapat e mësuesit, si ndahen nxënësit në grupe, çfarë pyetjesh bëhen.
 
 Kthe një objekt JSON me këto çelësa:
 {
   "tema_1": "${topic1}",
   "tema_2": "${topic2 || ""}",
-  "situata": "situata problemore që shikon në foto (jo e imagjinuar)",
-  "fushat": "fusha që lidhet me përmbajtjen e fotos",
-  "burimet": "libra, tabela dhe mjetet që SHIHEN në foto",
-  "rezultatet": "-> Kompetenca 1 bazuar te foto\\n-> Kompetenca 2 bazuar te foto\\n-> Kompetenca 3 bazuar te foto\\n-> Kompetenca 4 bazuar te foto",
-  "fjalet_kyçe": "termat shkencorë që SHIHEN në foto",
-  "metodologjia": "metoda bazuar te lloji i ushtrimit në foto",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "MINIMUM 100 FJALË: Shpjego në detaje cilat koncepte nga orët e mëparshme janë të nevojshme për këtë mësim. Jep shembuj konkret nga materialet e kaluara që nxënësit duhet t'i kujtojnë.",
-  "ndertimi_i_njohurive": "MINIMUM 100 FJALË: Përshkruaj HAPAT e mësuesit: 1) Si hap orën dhe prezanton temën, 2) Si demonstron zgjidhjen e ushtrimit të parë nga foto, 3) Si ndan nxënësit në grupe (cilat kritere), 4) Çfarë pyetjesh specifike bën për të vlerësuar kuptimin, 5) Si udhëzon grupet gjatë zgjidhjes së ushtrimit të dytë nga foto.",
-  "perforcimi_i_te_nxenit": "MINIMUM 100 FJALË: Jep 2-3 ushtrime të reja të ngjashme me ato që shihen në foto. Shpjego si mësuesi qarkullon në klasë për të ndihmuar nxënësit, cilat janë gabimet tipike që duhet të korrigjojë dhe si jep feedback.",
-  "shenime_vleresuese": "-> N2: Përshkruan konceptet nga foto\\n-> N3: Zbaton ushtrimet e fotos\\n-> N4: Analizon situata komplekse nga tema e fotos",
-  "detyra_shtepie": "2 ushtrime SPECIFIKE nga faqja e librit që shihet në foto"
+  "situata": "Situata problemore nga foto",
+  "fushat": "Fusha e relacionuar me përmbajtjen e fotos",
+  "burimet": "Burimet dhe mjetet e shihen në foto",
+  "rezultatet": "-> Kompetenca 1\\n-> Kompetenca 2\\n-> Kompetenca 3\\n-> Kompetenca 4",
+  "fjalet_kyçe": "Termat shkencorë nga foto",
+  "metodologjia": "Metoda bazuar te lloji i ushtrimit në foto",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "Përshkruaj konceptet e nevojshme dhe shembuj konkretë nga materialet e kaluara.",
+  "ndertimi_i_njohurive": "Përshkruaj hapat e mësuesit: si hap orën, demonstrimin, ndajën në grupe, pyetjet specifike dhe udhëzimin.",
+  "perforcimi_i_te_nxenit": "Jep 2-3 ushtrime të ngjashme me ato në foto dhe shpjego si mësuesi jep feedback.",
+  "shenime_vleresuese": "-> N2: Përshkruan konceptet\\n-> N3: Zbaton ushtrimet\\n-> N4: Analizon situata komplekse",
+  "detyra_shtepie": "2 ushtrime specifike nga faqja e librit"
 }
 
-RUGA: Çdo fushë duhet të përmbajë informacion VETËM nga foto. Mos shto asgjë imagjinare.
-Kthe VETËM objektin JSON, asgjë më shumë.`
-
-
+RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
 
     try {
         const response = await fetch(window.CONFIG.openai.endpoint, {
@@ -698,7 +714,7 @@ Kthe VETËM objektin JSON, asgjë më shumë.`
                 'Authorization': `Bearer ${await firebase.auth().currentUser.getIdToken()}`
             },
             body: JSON.stringify({
-                systemInstruction: "Je një mësues ekspert. Për fushat: Lidhja e temës, Ndërtimi i njohurive dhe Përforcimi, duhet të shkruash MINIMUMI 100 fjalë për secilën. Shpjego në detaje: hapat e mësuesit, si ndahen nxënësit në grupe, çfarë pyetjesh specifike bëhen dhe si zgjidhen ushtrimet e fotos. Mos prano përgjigje me një fjali. Analizo VETËM foton e ngarkuar.",
+                systemInstruction: "Je një mësues ekspert. Përshkruaj ecurinë e orës në detaje. Përmend mësuesin, nxënësit, mjetet dhe aktivitetet e shikuara në foto.",
                 prompt: prompt,
                 photoUrls: uploadedPhotos.map(p => p.url) || [],
                 formData: formData,
@@ -712,29 +728,51 @@ Kthe VETËM objektin JSON, asgjë më shumë.`
         }
 
         const result = await response.json();
+        console.log('API Response:', result);
         
-        // Parse JSON response from AI - STRUCTURED JSON OUTPUT
+        // Parse JSON response from AI - ROBUST HANDLING
         let parsedResult;
         try {
-            if (typeof result.content === 'string') {
-                parsedResult = JSON.parse(result.content);
-            } else {
-                parsedResult = result.content;
+            // Handle different response formats
+            let content = result.content;
+            
+            // If content is already an object, use it directly
+            if (typeof content === 'object' && content !== null) {
+                parsedResult = content;
+            } 
+            // If content is a string, parse it
+            else if (typeof content === 'string') {
+                parsedResult = JSON.parse(content);
             }
+            // Last resort: check if entire result is the JSON object
+            else if (result.message) {
+                parsedResult = JSON.parse(result.message);
+            }
+            else {
+                throw new Error('Could not parse response format');
+            }
+            
+            console.log('✅ Parsed JSON successfully:', parsedResult);
         } catch (e) {
-            console.error('JSON Parse Error:', e, 'Content:', result.content);
-            throw new Error('Përgjigja e AI-t nuk është JSON i vlefshëm');
+            console.error('JSON Parse Error:', e, 'Content:', result.content, 'Full result:', result);
+            throw new Error('Përgjigja e AI-t nuk është JSON i vlefshëm: ' + e.message);
         }
 
-        // Ensure all required fields exist
-        const requiredFields = ['tema_1', 'tema_2', 'situata', 'fushat', 'burimet', 'rezultatet', 
-                               'fjalet_kyçe', 'metodologjia', 'lidhja_e_temes_me_njohurite_e_meparshme',
-                               'ndertimi_i_njohurive', 'perforcimi_i_te_nxenit', 'shenime_vleresuese', 'detyra_shtepie'];
+        // Ensure all required fields exist with default values
+        const requiredFields = [
+            'tema_1', 'tema_2', 'situata', 'fushat', 'burimet', 'rezultatet', 
+            'fjalet_kyçe', 'metodologjia', 'lidhja_e_temes_me_njohurite_e_meparshme',
+            'ndertimi_i_njohurive', 'perforcimi_i_te_nxenit', 'shenime_vleresuese', 'detyra_shtepie'
+        ];
         
         requiredFields.forEach(field => {
-            if (!parsedResult[field]) parsedResult[field] = '';
+            if (!parsedResult[field] || parsedResult[field].trim() === '') {
+                parsedResult[field] = `[${field} - nuk u plotësua]`;
+                console.warn(`⚠️ Field ${field} is empty, using placeholder`);
+            }
         });
 
+        console.log('✅ All fields validated:', parsedResult);
         return parsedResult;
     } catch (error) {
         console.error('AI generation error:', error);
@@ -747,24 +785,39 @@ function displayDiaryContent(jsonData, formData) {
     // Parse JSON if it's a string
     const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
     
-    // Validate required fields
-    if (!data.tema_1) {
-        console.error('Invalid diary data - tema_1 missing');
-        showToast('Gabim në përpunimin e të dhënave', 'error');
-        return;
-    }
+    console.log('🔄 Displaying diary content:', data);
+    
+    // Store in window.currentDiary (new primary variable)
+    window.currentDiary = data;
+    window.lastGeneratedJSON = data;
+    window.lastTemplateData = data;
     
     // Generate HTML from structured JSON
     const htmlContent = generateHTMLFromJSON(data, formData);
     
     // Set the HTML content
-    generatedContent.innerHTML = htmlContent;
+    if (generatedContent) {
+        generatedContent.innerHTML = htmlContent;
+        generatedContent.style.display = 'block';
+        console.log('✅ Diary HTML displayed to DOM');
+    } else {
+        console.error('❌ generatedContent element not found!');
+        showToast('Gabim: elemento i përmbajtjes nuk u gjet', 'error');
+        return;
+    }
     
-    // Store for export
-    window.lastGeneratedJSON = data;
-    window.lastTemplateData = data;
+    // Verify each field was populated
+    const fieldsToCheck = ['tema_1', 'tema_2', 'situata', 'lidhja_e_temes_me_njohurite_e_meparshme', 'ndertimi_i_njohurive'];
+    fieldsToCheck.forEach(field => {
+        if (data[field]) {
+            console.log(`✅ ${field}: populated (${data[field].substring(0, 50)}...)`);
+        } else {
+            console.warn(`⚠️ ${field}: empty or missing`);
+        }
+    });
     
-    console.log('✅ Diary displayed successfully');
+    showToast('Ditari u gjenerua me sukses!', 'success');
+    console.log('✅ Diary displayed successfully. Data stored in window.currentDiary');
 }
 
 function generateHTMLFromJSON(data, formData) {
