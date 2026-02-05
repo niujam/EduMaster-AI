@@ -375,7 +375,8 @@ app.post('/api/generate', async (req, res) => {
         { role: 'user', content: messageContent }
       ],
       temperature: 0.5,
-      max_tokens: 2000
+      max_tokens: 2000,
+      response_format: { "type": "json_object" }
     });
 
     const text = openaiResp?.choices?.[0]?.message?.content || '';

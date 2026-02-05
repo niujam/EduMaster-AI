@@ -610,8 +610,8 @@ generateForm.addEventListener('submit', async (e) => {
         // Generate diary with OpenAI
         const generatedDiary = await generateDiaryWithAI(formData);
         
-        // NOTE: Credits are deducted server-side atomically during generation
-        // (no client-side deduction needed)
+        // Display the diary content - USES displayDiaryContent function
+        displayDiaryContent(generatedDiary, formData);
         
         // Save to history
         await db.collection('users').doc(currentUser.uid)
@@ -621,8 +621,7 @@ generateForm.addEventListener('submit', async (e) => {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         
-        // Display result
-        generatedContent.innerHTML = generatedDiary;
+        // Show result section
         generationResult.style.display = 'block';
         
         // Scroll to result
@@ -650,30 +649,25 @@ async function generateDiaryWithAI(formData) {
     const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
     const topic2 = formData.topic2 || '';
     
-  const prompt = `JE NJE ASISTENT MESUESI QE LEXON FOTO TE LIBRAVE SHKOLLORE.
-Detyra jote: Analizo me kujdes foton e ngarkuar (faqen e librit) dhe gjenero planin e mësimit JSON për temën: "${topic1}".
-
-STRUKTURA JSON (13 FUSHA):
+  const prompt = `Analizo foton e librit shkollor dhe kthe një objekt JSON me këto çelësa ekzakte:
 {
   "tema_1": "${topic1}",
   "tema_2": "${topic2 || ""}",
-  "situata": "Nxirr nga fotoja (ose krijo bazuar në të) një situatë problemore reale.",
-  "fushat": "Përcakto fushën saktë (p.sh. Matematikë, Shkencat e Natyrës, etj.)",
-  "burimet": "Përfshi: Libri i nxënësit (fotoja), tabela, dhe mjetet që shihen në faqen e librit.",
-  "rezultatet": "Gjenero 4-6 kompetenca specifike bazuar në ushtrimet e fotos. Përdor '-> ' dhe '\\n' për çdo rresht.",
-  "fjalet_kyçe": "Identifiko termat shkencorë që janë të theksuar (bold) ose kryesorë në foto.",
-  "metodologjia": "Përshtat metodën sipas llojit të mësimit në foto (p.sh. Analizë figure, Zgjidhje ushtrimi).",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "Analizo temën aktuale dhe shpjegoni cilat koncepte nga orët e kaluara (si p.sh. numrat, epokat, ose rregullat gramatikore bazë) janë të domosdoshme për këtë mësim.",
-  "ndertimi_i_njohurive": "Përdor shembujt e zgjidhur në foto për të shpjeguar konceptin e ri hap pas hapi.",
-  "perforcimi_i_te_nxenit": "Shto një ushtrim të ngjashëm me ato të fotos që nxënësit ta punojnë në klasë.",
-  "shenime_vleresuese": "-> N2: Përshkruan njohuritë e fotos.\\n-> N3: Zbaton ushtrimet e fotos.\\n-> N4: Analizon situata komplekse nga tema.",
-  "detyra": "Zgjidh 2 ushtrime nga faqja e librit që shihet në foto."
+  "situata": "situata problemore nga foto",
+  "fushat": "fusha lidhje me të tjera",
+  "burimet": "libra, tabela, mjete",
+  "rezultatet": "-> Kompetenca 1\\n-> Kompetenca 2\\n-> Kompetenca 3\\n-> Kompetenca 4",
+  "fjalet_kyçe": "termat shkencorë",
+  "metodologjia": "metoda mësimi",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "lidhja me orët e kaluara",
+  "ndertimi_i_njohurive": "hapat e shpjegimit",
+  "perforcimi_i_te_nxenit": "ushtrimi për përforcim",
+  "shenime_vleresuese": "-> N2: përshkrim\\n-> N3: zbatim\\n-> N4: analiza",
+  "detyra_shtepie": "2 ushtrime nga faqja"
 }
 
-INSTRUKSIONE PER FOTON:
-1. Nëse në foto ka tabela apo diagrame (si te shembulli i matematikës), përshkruaji ato te 'ndertimi_i_njohurive'.
-2. Lidhja me njohuritë e mëparshme: Mos thuaj vetëm 'e dinë', por specifiko 'bazuar në këtë temë, nxënësit duhet të kujtojnë X nga javët e kaluara'.
-3. Përdor vetëm JSON. Mos shkruaj asgjë tjetër para ose pas objektit.`
+RUGA: Çdo rresht në 'rezultatet' dhe 'shenime_vleresuese' duhet të fillojë me '-> ' dhe përfundohje me \\n.
+Kthe VETËM objektin JSON, asgjë më shume.`
 
 
 
@@ -687,7 +681,8 @@ INSTRUKSIONE PER FOTON:
             body: JSON.stringify({
                 prompt: prompt,
                 photoUrls: uploadedPhotos.map(p => p.url) || [],
-                formData: formData
+                formData: formData,
+                response_format: { "type": "json_object" }
             })
         });
 
@@ -698,26 +693,28 @@ INSTRUKSIONE PER FOTON:
 
         const result = await response.json();
         
-        // Parse JSON response from AI
+        // Parse JSON response from AI - STRUCTURED JSON OUTPUT
         let parsedResult;
         try {
-            // Try to extract JSON from the response
-            const jsonMatch = result.content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                parsedResult = JSON.parse(jsonMatch[0]);
-            } else {
+            if (typeof result.content === 'string') {
                 parsedResult = JSON.parse(result.content);
+            } else {
+                parsedResult = result.content;
             }
         } catch (e) {
-            console.warn('Could not parse AI response as JSON, using as is:', result.content);
-            parsedResult = { content: result.content };
+            console.error('JSON Parse Error:', e, 'Content:', result.content);
+            throw new Error('Përgjigja e AI-t nuk është JSON i vlefshëm');
         }
 
-        // Convert JSON to HTML template with proper formatting
-        if (parsedResult && typeof parsedResult === 'object' && !parsedResult.content) {
-            return generateHTMLFromJSON(parsedResult, formData);
-        }
+        // Ensure all required fields exist
+        const requiredFields = ['tema_1', 'tema_2', 'situata', 'fushat', 'burimet', 'rezultatet', 
+                               'fjalet_kyçe', 'metodologjia', 'lidhja_e_temes_me_njohurite_e_meparshme',
+                               'ndertimi_i_njohurive', 'perforcimi_i_te_nxenit', 'shenime_vleresuese', 'detyra_shtepie'];
         
+        requiredFields.forEach(field => {
+            if (!parsedResult[field]) parsedResult[field] = '';
+        });
+
         return parsedResult;
     } catch (error) {
         console.error('AI generation error:', error);
@@ -726,9 +723,31 @@ INSTRUKSIONE PER FOTON:
 }
 
 // Helper function to convert AI JSON response to HTML template
+function displayDiaryContent(jsonData, formData) {
+    // Parse JSON if it's a string
+    const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+    
+    // Validate required fields
+    if (!data.tema_1) {
+        console.error('Invalid diary data - tema_1 missing');
+        showToast('Gabim në përpunimin e të dhënave', 'error');
+        return;
+    }
+    
+    // Generate HTML from structured JSON
+    const htmlContent = generateHTMLFromJSON(data, formData);
+    
+    // Set the HTML content
+    generatedContent.innerHTML = htmlContent;
+    
+    // Store for export
+    window.lastGeneratedJSON = data;
+    window.lastTemplateData = data;
+    
+    console.log('✅ Diary displayed successfully');
+}
+
 function generateHTMLFromJSON(data, formData) {
-    // Ensure empty tema_2 displays as empty, not "undefined"
-    const tema_2_display = data.tema_2 && data.tema_2.trim() ? data.tema_2 : '';
     
     const htmlTemplate = `
 <div style="width: 100%; margin: 0; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; padding: 0;">
@@ -758,26 +777,20 @@ function generateHTMLFromJSON(data, formData) {
                 <p style="margin: 0;">${data.burimet || ''}</p>
             </td>
             <td style="border: 1px solid #000; padding: 10px; width: 60%; vertical-align: top;">
-                <p style="margin: 0 0 8px 0;"><em>Rezultatet e të nxënit të kompetencave: Nxënësi:</em></p>
-                <p style="margin: 0;">➢ ${data.kompetenca_1 || ''}</p>
-                <p style="margin: 0;">➢ ${data.kompetenca_2 || ''}</p>
-                <p style="margin: 0;">➢ ${data.kompetenca_3 || ''}</p>
-                <p style="margin: 0;">➢ ${data.kompetenca_4 || ''}</p>
+                <p style="margin: 0 0 8px 0;"><em>Rezultatet e të nxënit të kompetencave:</em></p>
+                <p style="margin: 0; white-space: pre-wrap;">${data.rezultatet || ''}</p>
+                <p style="margin: 8px 0 0 0;"><em>Fjalët kyçe:</em> ${data.fjalet_kyçe || ''}</p>
             </td>
         </tr>
         <tr>
-            <td style="border: 1px solid #000; padding: 10px; width: 40%; vertical-align: top;">
+            <td colspan="2" style="border: 1px solid #000; padding: 10px; vertical-align: top;">
                 <p style="margin: 0 0 6px 0;"><em>Metodologjia dhe veprimtaritë e nxënësve:</em></p>
-                <p style="margin: 0; text-align: center;">${data.metodologjia || ''}</p>
-            </td>
-            <td style="border: 1px solid #000; padding: 10px; width: 60%; vertical-align: top;">
-                <p style="margin: 0 0 6px 0;"><em>Fjalët kyçe:</em></p>
-                <p style="margin: 0;">${data.fjalet_kyçe || ''}</p>
+                <p style="margin: 0;">${data.metodologjia || ''}</p>
             </td>
         </tr>
     </table>
 
-    <!-- TABELA 3: Zhvillimi (merged cells) -->
+    <!-- TABELA 3: Zhvillimi -->
     <table style="width: 100%; border-collapse: collapse; border: 2px solid #000; border-top: none;">
         <tr>
             <td style="border: 1px solid #000; padding: 12px;">
@@ -802,7 +815,7 @@ function generateHTMLFromJSON(data, formData) {
             </td>
             <td style="border: 1px solid #000; border-left: 2px solid #000; padding: 12px; width: 35%; vertical-align: top;">
                 <p style="margin: 0 0 8px 0;"><strong>Detyra shtëpie:</strong></p>
-                <p style="margin: 0;">${data.detyra || ''}</p>
+                <p style="margin: 0;">${data.detyra_shtepie || ''}</p>
             </td>
         </tr>
     </table>
