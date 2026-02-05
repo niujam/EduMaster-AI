@@ -322,12 +322,15 @@ app.post('/api/generate', async (req, res) => {
       return res.status(402).json({ error: 'Insufficient credits', available: credits, required: creditCost });
     }
 
-    const { formData, prompt: clientPrompt, photos } = req.body || {};
+    const { formData, prompt: clientPrompt, photos, systemInstruction } = req.body || {};
     const usedModel = OPENAI_MODEL;
     const isMultipleThemes = formData?.isMultipleThemes || false;
 
     // Use client-provided prompt if available, otherwise build from formData
     let prompt = clientPrompt || buildPromptFromForm(formData || {});
+    
+    // Use system instruction from client or default
+    const systemMessage = systemInstruction || 'Ti je një asistent që plotëson ditarë shkollorë. Analizo fotot e dhëna dhe gjenero përmbajtje të detajuar në JSON.';
     
     // Modify prompt if multi-theme lesson is selected
     if (isMultipleThemes) {
@@ -371,7 +374,7 @@ app.post('/api/generate', async (req, res) => {
     const openaiResp = await client.chat.completions.create({
       model: usedModel,
       messages: [
-        { role: 'system', content: 'Ti je një asistent që plotëson ditarë shkollorë. Të janë dhënë deri në 10 foto të faqeve të librit. Shikoje përmbajtjen sipas radhës. Nëse dallon që fotot kalojnë nga një temë mësimi në një tjetër, integrojini ato në mënyrë organike në ditarin final, duke përfshirë objektivat dhe kompetencat për të gjithë materialin e paraqitur. Përgjigju VETËM në formatin JSON që të përputhet me template-in.' },
+        { role: 'system', content: systemMessage },
         { role: 'user', content: messageContent }
       ],
       temperature: 0.5,

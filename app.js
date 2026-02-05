@@ -302,15 +302,26 @@ function toggleSidebar() {
     console.log('Sidebar toggled:', isClosed ? 'closed' : 'open');
 }
 
-// Close sidebar on mobile only when clicking nav items
+// Auto-close sidebar when clicking nav items (all devices)
 navItems.forEach(item => {
     item.addEventListener('click', () => {
-        // On mobile, keep sidebar behavior as is
-        // On PC, sidebar stays open/closed based on user preference
-        if (window.innerWidth <= 968 && !sidebar.classList.contains('closed')) {
-            // Mobile: sidebar slides out after navigation
-            sidebar.classList.remove('open');
+        // Close sidebar automatically on navigation
+        if (!sidebar.classList.contains('closed')) {
+            sidebar.classList.add('closed');
+            mainContent.classList.add('full-width');
+            localStorage.setItem('sidebarClosed', 'true');
+            
+            // Update toggle button icon
+            const toggleButtons = document.querySelectorAll('.sidebar-toggle');
+            toggleButtons.forEach(btn => {
+                btn.innerHTML = '→';
+                btn.title = 'Hap Sidebar-in';
+            });
         }
+        
+        // Remove mobile overlay if exists
+        sidebar.classList.remove('open');
+        document.querySelector('.sidebar-overlay')?.remove();
     });
 });
 
@@ -320,7 +331,12 @@ if (!document.querySelector('.sidebar-toggle')) {
     toggle.className = 'sidebar-toggle';
     toggle.innerHTML = '☰';
     toggle.type = 'button';
+    toggle.style.zIndex = '9999'; // Ensure visibility on mobile
     toggle.addEventListener('click', toggleSidebar);
+    toggle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+    }, { passive: false });
     document.body.appendChild(toggle);
 }
 backBtn.addEventListener('click', () => {
@@ -642,25 +658,35 @@ async function generateDiaryWithAI(formData) {
     const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
     const topic2 = formData.topic2 || '';
     
-  const prompt = `Analizo foton e librit shkollor dhe kthe një objekt JSON me këto çelësa ekzakte:
+  const prompt = `Je një mësues ekspert që krijon planifikime mësimore të detajuara.
+
+UDHËZIME STRIKTE:
+1. ANALIZO VETËM foton e ngarkuar. Injoro çdo tekst që nuk vjen nga foto.
+2. Nëse sheh VARGJE në foto, shkruaj për vargje. Nëse sheh EKUACIONE, shkruaj për ekuacione. Bazohu 100% te ajo që shikon.
+3. Për këto 3 fusha, shkruaj MINIMUM 100 FJALË secila me detaje konkrete:
+   - lidhja_e_temes_me_njohurite_e_meparshme: Shpjego SAKTËSISHT cilat koncepte nga orët e kaluara lidhen me temën. Jep shembuj specifik.
+   - ndertimi_i_njohurive: Shkruaj HAPAT e mësuesit hap-pas-hapi. Si ndahen nxënësit në grupe? Çfarë pyetjesh specifike bën mësuesi? Si zgjidhen ushtrimet e fotos në detaje?
+   - perforcimi_i_te_nxenit: Jep ushtrime të ngjashme me ato të fotos. Shpjego si mësuesi i kontrollon nxënësit gjatë punës.
+
+Kthe një objekt JSON me këto çelësa:
 {
   "tema_1": "${topic1}",
   "tema_2": "${topic2 || ""}",
-  "situata": "situata problemore nga foto",
-  "fushat": "fusha lidhje me të tjera",
-  "burimet": "libra, tabela, mjete",
-  "rezultatet": "-> Kompetenca 1\\n-> Kompetenca 2\\n-> Kompetenca 3\\n-> Kompetenca 4",
-  "fjalet_kyçe": "termat shkencorë",
-  "metodologjia": "metoda mësimi",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "lidhja me orët e kaluara",
-  "ndertimi_i_njohurive": "hapat e shpjegimit",
-  "perforcimi_i_te_nxenit": "ushtrimi për përforcim",
-  "shenime_vleresuese": "-> N2: përshkrim\\n-> N3: zbatim\\n-> N4: analiza",
-  "detyra_shtepie": "2 ushtrime nga faqja"
+  "situata": "situata problemore që shikon në foto (jo e imagjinuar)",
+  "fushat": "fusha që lidhet me përmbajtjen e fotos",
+  "burimet": "libra, tabela dhe mjetet që SHIHEN në foto",
+  "rezultatet": "-> Kompetenca 1 bazuar te foto\\n-> Kompetenca 2 bazuar te foto\\n-> Kompetenca 3 bazuar te foto\\n-> Kompetenca 4 bazuar te foto",
+  "fjalet_kyçe": "termat shkencorë që SHIHEN në foto",
+  "metodologjia": "metoda bazuar te lloji i ushtrimit në foto",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "MINIMUM 100 FJALË: Shpjego në detaje cilat koncepte nga orët e mëparshme janë të nevojshme për këtë mësim. Jep shembuj konkret nga materialet e kaluara që nxënësit duhet t'i kujtojnë.",
+  "ndertimi_i_njohurive": "MINIMUM 100 FJALË: Përshkruaj HAPAT e mësuesit: 1) Si hap orën dhe prezanton temën, 2) Si demonstron zgjidhjen e ushtrimit të parë nga foto, 3) Si ndan nxënësit në grupe (cilat kritere), 4) Çfarë pyetjesh specifike bën për të vlerësuar kuptimin, 5) Si udhëzon grupet gjatë zgjidhjes së ushtrimit të dytë nga foto.",
+  "perforcimi_i_te_nxenit": "MINIMUM 100 FJALË: Jep 2-3 ushtrime të reja të ngjashme me ato që shihen në foto. Shpjego si mësuesi qarkullon në klasë për të ndihmuar nxënësit, cilat janë gabimet tipike që duhet të korrigjojë dhe si jep feedback.",
+  "shenime_vleresuese": "-> N2: Përshkruan konceptet nga foto\\n-> N3: Zbaton ushtrimet e fotos\\n-> N4: Analizon situata komplekse nga tema e fotos",
+  "detyra_shtepie": "2 ushtrime SPECIFIKE nga faqja e librit që shihet në foto"
 }
 
-RUGA: Çdo rresht në 'rezultatet' dhe 'shenime_vleresuese' duhet të fillojë me '-> ' dhe përfundohje me \\n.
-Kthe VETËM objektin JSON, asgjë më shume.`
+RUGA: Çdo fushë duhet të përmbajë informacion VETËM nga foto. Mos shto asgjë imagjinare.
+Kthe VETËM objektin JSON, asgjë më shumë.`
 
 
 
@@ -672,6 +698,7 @@ Kthe VETËM objektin JSON, asgjë më shume.`
                 'Authorization': `Bearer ${await firebase.auth().currentUser.getIdToken()}`
             },
             body: JSON.stringify({
+                systemInstruction: "Je një mësues ekspert. Për fushat: Lidhja e temës, Ndërtimi i njohurive dhe Përforcimi, duhet të shkruash MINIMUMI 100 fjalë për secilën. Shpjego në detaje: hapat e mësuesit, si ndahen nxënësit në grupe, çfarë pyetjesh specifike bëhen dhe si zgjidhen ushtrimet e fotos. Mos prano përgjigje me një fjali. Analizo VETËM foton e ngarkuar.",
                 prompt: prompt,
                 photoUrls: uploadedPhotos.map(p => p.url) || [],
                 formData: formData,
