@@ -650,30 +650,30 @@ async function generateDiaryWithAI(formData) {
     const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
     const topic2 = formData.topic2 || '';
     
-  const prompt = `JE NJE EKSPERT I KURRIKULËS ARSIMORE SHQIPTARE.
-Gjenero një plan mësimi profesional JSON për temën: "${topic1}" ${topic2 ? `dhe "${topic2}"` : ""}.
+  const prompt = `JE NJE ASISTENT MESUESI QE LEXON FOTO TE LIBRAVE SHKOLLORE.
+Detyra jote: Analizo me kujdes foton e ngarkuar (faqen e librit) dhe gjenero planin e mësimit JSON për temën: "${topic1}".
 
-STRUKTURA E OBJEKTIT JSON (13 FUSHA):
+STRUKTURA JSON (13 FUSHA):
 {
   "tema_1": "${topic1}",
   "tema_2": "${topic2 || ""}",
-  "situata": "Krijo një situatë konkrete praktike/problemore që motivon nxënësit për këtë temë.",
-  "fushat": "Përcakto fushat që lidhen saktë me temën (p.sh. Shoqëria dhe Mjedisi, Shkencat etj.)",
-  "burimet": "Rendit mjetet: Libri i nxënësit, tabela, mjete digjitale, materiale konkrete.",
-  "rezultatet": "Gjenero 4-6 rezultate të nxëni sipas kompetencave. SECILI rresht duhet të fillojë me '-> ' dhe të përfundojë me '\\n'.",
-  "fjalet_kyçe": "Rendit 5 terma teknikë/shkencorë kryesorë të ndarë me presje.",
-  "metodologjia": "Përdor metoda aktive: Pyetje-përgjigje, Stuhi mendimesh, Punë në grupe.",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "Përshkruaj shkurt çfarë duhet të dinë nxënësit për të kuptuar këtë mësim.",
-  "ndertimi_i_njohurive": "Shpjego konceptet e reja dhe jep 2 shembuj/ushtrime të zgjidhura hap pas hapi.",
-  "perforcimi_i_te_nxenit": "Kërko nga nxënësit të zgjidhin një detyrë ose të argumentojnë një koncept.",
-  "shenime_vleresuese": "-> N2: Nxënësi përshkruan/emërton konceptet bazë.\\n-> N3: Nxënësi analizon dhe zbaton njohuritë.\\n-> N4: Nxënësi argumenton dhe zgjidh situata komplekse.",
-  "detyra": "Jep detyra specifike nga libri ose kërkim individual."
+  "situata": "Nxirr nga fotoja (ose krijo bazuar në të) një situatë problemore reale.",
+  "fushat": "Përcakto fushën saktë (p.sh. Matematikë, Shkencat e Natyrës, etj.)",
+  "burimet": "Përfshi: Libri i nxënësit (fotoja), tabela, dhe mjetet që shihen në faqen e librit.",
+  "rezultatet": "Gjenero 4-6 kompetenca specifike bazuar në ushtrimet e fotos. Përdor '-> ' dhe '\\n' për çdo rresht.",
+  "fjalet_kyçe": "Identifiko termat shkencorë që janë të theksuar (bold) ose kryesorë në foto.",
+  "metodologjia": "Përshtat metodën sipas llojit të mësimit në foto (p.sh. Analizë figure, Zgjidhje ushtrimi).",
+  "lidhja_e_temes_me_njohurite_e_meparshme": "Analizo temën aktuale dhe shpjegoni cilat koncepte nga orët e kaluara (si p.sh. numrat, epokat, ose rregullat gramatikore bazë) janë të domosdoshme për këtë mësim.",
+  "ndertimi_i_njohurive": "Përdor shembujt e zgjidhur në foto për të shpjeguar konceptin e ri hap pas hapi.",
+  "perforcimi_i_te_nxenit": "Shto një ushtrim të ngjashëm me ato të fotos që nxënësit ta punojnë në klasë.",
+  "shenime_vleresuese": "-> N2: Përshkruan njohuritë e fotos.\\n-> N3: Zbaton ushtrimet e fotos.\\n-> N4: Analizon situata komplekse nga tema.",
+  "detyra": "Zgjidh 2 ushtrime nga faqja e librit që shihet në foto."
 }
 
-RREGULLAT KRITIKE:
-1. UNIVERSALITETI: Përshtat përmbajtjen në varësi të lëndës (nëse tema është Histori, përdor fakte; nëse është Matematikë, përdor formula).
-2. FORMATI: Kthe vetëm JSON-in e pastër. Mos shkruaj asnjë tekst tjetër.
-3. NDARJA: Përdor '\\n' për të krijuar rreshta të rinj brenda fushave 'rezultatet' dhe 'shenime_vleresuese' që të dalin bukur në Word.`;
+INSTRUKSIONE PER FOTON:
+1. Nëse në foto ka tabela apo diagrame (si te shembulli i matematikës), përshkruaji ato te 'ndertimi_i_njohurive'.
+2. Lidhja me njohuritë e mëparshme: Mos thuaj vetëm 'e dinë', por specifiko 'bazuar në këtë temë, nxënësit duhet të kujtojnë X nga javët e kaluara'.
+3. Përdor vetëm JSON. Mos shkruaj asgjë tjetër para ose pas objektit.`
 
 
 
