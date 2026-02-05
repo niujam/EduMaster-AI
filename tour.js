@@ -40,6 +40,15 @@ function startUserTour() {
             }
         },
         {
+            element: '.sidebar-toggle',
+            popover: {
+                title: 'Toggle Sidebar 📱',
+                description: 'Klikoni këtë buton për të mbyllur ose hapur Sidebar-in. Kur e mbyllni, ditari merr 100% të ekranit për një pamje më të qartë dhe profesionale!',
+                side: 'right',
+                align: 'center',
+            }
+        },
+        {
             element: '[data-page="generate"]',
             popover: {
                 title: 'Gjenerimi i Ditarëve ✨',

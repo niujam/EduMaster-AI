@@ -285,27 +285,31 @@ function createSidebarToggle() {
 }
 
 function toggleSidebar() {
-    sidebar.classList.toggle('open');
-    document.body.classList.toggle('sidebar-closed');
+    sidebar.classList.toggle('closed');
+    mainContent.classList.toggle('full-width');
     
-    // Add overlay on mobile when sidebar opens
-    if (window.innerWidth <= 968 && sidebar.classList.contains('open')) {
-        const overlay = document.createElement('div');
-        overlay.className = 'sidebar-overlay';
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.remove();
-        });
-        document.body.appendChild(overlay);
-    }
+    // Save state to localStorage
+    const isClosed = sidebar.classList.contains('closed');
+    localStorage.setItem('sidebarClosed', isClosed);
+    
+    // Update toggle button icon
+    const toggleButtons = document.querySelectorAll('.sidebar-toggle');
+    toggleButtons.forEach(btn => {
+        btn.innerHTML = isClosed ? '→' : '☰';
+        btn.title = isClosed ? 'Hap Sidebar-in' : 'Mbyll Sidebar-in';
+    });
+    
+    console.log('Sidebar toggled:', isClosed ? 'closed' : 'open');
 }
 
-// Close sidebar when clicking on nav items
+// Close sidebar on mobile only when clicking nav items
 navItems.forEach(item => {
     item.addEventListener('click', () => {
-        if (window.innerWidth <= 968) {
+        // On mobile, keep sidebar behavior as is
+        // On PC, sidebar stays open/closed based on user preference
+        if (window.innerWidth <= 968 && !sidebar.classList.contains('closed')) {
+            // Mobile: sidebar slides out after navigation
             sidebar.classList.remove('open');
-            document.querySelector('.sidebar-overlay')?.remove();
         }
     });
 });
@@ -335,38 +339,27 @@ if (buyCreditsNavBtn) {
 }
 
 // ===================================
+// Sidebar Toggle - Universal (PC & Mobile)
 // ===================================
-// Sidebar Toggle
-// ===================================
-toggleSidebarBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    
-    // Add overlay on mobile
-    if (window.innerWidth <= 968 && sidebar.classList.contains('open')) {
-        const overlay = document.createElement('div');
-        overlay.className = 'sidebar-overlay active';
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.remove();
+if (toggleSidebarBtn) {
+    toggleSidebarBtn.addEventListener('click', toggleSidebar);
+}
+
+if (closeSidebarBtn) {
+    closeSidebarBtn.addEventListener('click', toggleSidebar);
+}
+
+// Restore sidebar state on load
+window.addEventListener('load', () => {
+    const sidebarClosed = localStorage.getItem('sidebarClosed') === 'true';
+    if (sidebarClosed) {
+        sidebar.classList.add('closed');
+        mainContent.classList.add('full-width');
+        const toggleButtons = document.querySelectorAll('.sidebar-toggle');
+        toggleButtons.forEach(btn => {
+            btn.innerHTML = '→';
+            btn.title = 'Hap Sidebar-in';
         });
-        document.body.appendChild(overlay);
-    }
-});
-
-closeSidebarBtn.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    document.querySelector('.sidebar-overlay')?.remove();
-});
-
-// Close sidebar when clicking outside (Glassmorphism effect)
-document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 968) {
-        if (!sidebar.contains(e.target) && 
-            !toggleSidebarBtn.contains(e.target) && 
-            sidebar.classList.contains('open')) {
-            sidebar.classList.remove('open');
-            document.querySelector('.sidebar-overlay')?.remove();
-        }
     }
 });
 
@@ -451,8 +444,8 @@ function optoFoto(file) {
                 // Vizato imazhin në canvas
                 ctx.drawImage(img, 0, 0, newWidth, newHeight);
                 
-                // Konverto në Base64 JPEG me cilësi 0.7
-                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                // Konverto në Base64 JPEG me cilësi 1.0 (maksimale për AI)
+                const optimizedBase64 = canvas.toDataURL('image/jpeg', 1.0);
                 
                 // Llogarit madhësine origjinale vs të optimizuar
                 const originalSize = (event.target.result.length / 1024).toFixed(2);
@@ -748,6 +741,10 @@ function displayDiaryContent(jsonData, formData) {
 }
 
 function generateHTMLFromJSON(data, formData) {
+    // Ensure data is object
+    if (typeof data === 'string') data = JSON.parse(data);
+    
+    const tema_2_display = data.tema_2 && data.tema_2.trim() ? data.tema_2 : '';
     
     const htmlTemplate = `
 <div style="width: 100%; margin: 0; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; padding: 0;">

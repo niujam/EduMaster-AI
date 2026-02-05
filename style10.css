@@ -313,7 +313,7 @@ body {
 .main-content {
     flex: 1;
     margin-left: 280px;
-    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: calc(100% - 280px);
     overflow-x: hidden;
     display: flex;
@@ -444,7 +444,7 @@ body {
 #termsPage {
     position: static !important;
     background: var(--bg) !important;
-    z-index: 1 !important;
+    z-index: 10 !important;
     overflow-y: visible !important;
     padding: 40px 20px !important;
     display: none;
@@ -513,31 +513,34 @@ body {
     margin-bottom: 24px;
 }
 
-/* Hamburger Toggle Button */
+/* Hamburger Toggle Button - Always visible on PC */
 .sidebar-toggle {
-    display: none;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
-    color: var(--text);
-    padding: 10px 15px;
-    border-radius: 8px;
+    display: block;
+    background: var(--accent);
+    border: 2px solid var(--accent);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 22px;
     z-index: 1001;
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: 16px;
+    left: 16px;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .sidebar-toggle:hover {
-    background: var(--accent);
-    color: white;
+    background: var(--accent-hover);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
 }
 
-/* Show toggle when sidebar is closed */
-body.sidebar-closed .sidebar-toggle {
-    display: block;
+/* When sidebar is closed, move toggle to left edge */
+.sidebar.closed ~ * .sidebar-toggle,
+.sidebar.closed + .main-content .sidebar-toggle {
+    left: 16px;
 }
 
 /* Home Page */
