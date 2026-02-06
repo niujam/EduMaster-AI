@@ -142,7 +142,15 @@ function toggleSidebar() {
 
 // Auto-close sidebar when clicking nav items (all devices)
 navItems.forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const page = item.getAttribute('data-page');
+        if (page) {
+            navigateToPage(page);
+        }
+
         if (!sidebar.classList.contains('closed')) {
             sidebar.classList.add('closed');
             mainContent.classList.add('full-width');
