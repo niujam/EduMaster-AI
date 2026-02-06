@@ -54,11 +54,68 @@ const multipleThemesCheckbox = document.getElementById('multipleThemesCheckbox')
 // ===================================
 const creditsCount = document.getElementById('creditsCount');
 const creditsDisplay = document.getElementById('creditsDisplay');
-const profileCredits = document.getElementById('profileCredits');
+const profileCredits = document.getElementById('profileCredits') || creditsDisplay;
 
 // Safety check for critical elements
-if (!creditsCount || !creditsDisplay || !profileCredits) {
-    console.warn('⚠️ Some credit display elements are missing');
+if (!creditsCount || !creditsDisplay) {
+    console.warn('⚠️ Credit display elements are missing');
+}
+
+// ===================================
+// Credits Display
+// ===================================
+function updateCreditsDisplay(credits) {
+    if (creditsCount) creditsCount.textContent = credits;
+    if (creditsDisplay) creditsDisplay.textContent = credits;
+    if (profileCredits) profileCredits.textContent = credits;
+}
+
+// ===================================
+// Load User Data
+// ===================================
+async function loadUserData() {
+    if (!currentUser) {
+        console.warn('No user logged in, skipping data load');
+        return;
+    }
+
+    try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            userCredits = userData.credits || 0;
+            updateCreditsDisplay(userCredits);
+        } else {
+            userCredits = 0;
+            updateCreditsDisplay(userCredits);
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
+}
+
+// ===================================
+// Setup Realtime Listeners
+// ===================================
+function setupRealtimeListeners() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid)
+        .onSnapshot((doc) => {
+            if (doc.exists) {
+                const userData = doc.data();
+                userCredits = userData.credits || 0;
+                updateCreditsDisplay(userCredits);
+            }
+        });
+}
+
+// ===================================
+// Initialize App (called from auth.js)
+// ===================================
+function initializeApp(user) {
+    currentUser = user;
+    loadUserData();
+    setupRealtimeListeners();
 }
 
 // Make remove helpers global
