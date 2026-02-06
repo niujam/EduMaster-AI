@@ -56,8 +56,8 @@ exportBtn.addEventListener('click', async () => {
 // Export DOCX by filling template
 // ===================================
 async function exportTemplateDocx(templateData) {
-    const subject = document.getElementById('subject')?.value || 'Plani i Mësimit';
-    const date = document.getElementById('lessonDate')?.value || new Date().toISOString().split('T')[0];
+    const subject = document.getElementById('lenda')?.value || document.getElementById('fusha')?.value || 'Plani i Mësimit';
+    const date = new Date().toISOString().split('T')[0];
     const token = currentUser && typeof currentUser.getIdToken === 'function' ? await currentUser.getIdToken() : null;
 
     const response = await fetch(window.CONFIG.docx.endpoint, {
@@ -88,8 +88,8 @@ async function exportTemplateDocx(templateData) {
 // ===================================
 async function exportHTMLContentAsDocx(htmlContent) {
     try {
-        const subject = document.getElementById('subject')?.value || 'Plani i Mësimit';
-        const date = document.getElementById('lessonDate')?.value || new Date().toISOString().split('T')[0];
+        const subject = document.getElementById('lenda')?.value || document.getElementById('fusha')?.value || 'Plani i Mësimit';
+        const date = new Date().toISOString().split('T')[0];
         
         // Create a complete HTML document that preserves all formatting
         const fullHtml = `<!DOCTYPE html>

@@ -191,36 +191,46 @@
                 <h1>Gjeneroni Ditar të Ri</h1>
                 
                 <form id="generateForm" class="generate-form">
-                    <div class="form-group">
-                        <label><i class="fas fa-book"></i> Lënda</label>
-                        <input type="text" id="subject" placeholder="p.sh. Matematikë" required>
-                    </div>
+                    <div class="diary-inputs">
+                        <h3 class="diary-inputs-title">Inputet e Ditarit</h3>
 
-                    <div class="form-group">
-                        <label><i class="fas fa-layer-group"></i> Klasa</label>
-                        <input type="text" id="grade" placeholder="p.sh. Klasa 5" required>
-                    </div>
-
-                    <!-- Topic Fields -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-book"></i> Tema Kryesore (Detyruese) *</label>
-                            <input type="text" id="topic1" placeholder="p.sh. Sistemet e Organizmit, Thyerja e Dritës" required>
-                            <small style="color: #666; margin-top: 5px; display: block;">Tema kryesore e mësimit që do të gjenerojë ditarin</small>
+                        <div class="diary-inputs-grid">
+                            <div class="form-group compact">
+                                <label><i class="fas fa-columns"></i> Fusha</label>
+                                <input type="text" id="fusha" placeholder="p.sh. Shkencat e Natyrës" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label><i class="fas fa-book"></i> Lënda</label>
+                                <input type="text" id="lenda" placeholder="p.sh. Matematikë" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label><i class="fas fa-layer-group"></i> Shkalla</label>
+                                <input type="text" id="shkalla" placeholder="p.sh. V" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label><i class="fas fa-school"></i> Klasa</label>
+                                <input type="text" id="klasa" placeholder="p.sh. X" required>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-book"></i> Tema Dytësore (Opsionale)</label>
-                            <input type="text" id="topic2" placeholder="p.sh. Homostaza, Përthyerja në Lëngje">
-                            <small style="color: #666; margin-top: 5px; display: block;">Nëse ky mësim përfshin dy tema të ndryshme, futni temën e dytë këtu</small>
+                        <div class="diary-inputs-row">
+                            <div class="form-group">
+                                <label><i class="fas fa-book-open"></i> Tema 1</label>
+                                <input type="text" id="tema1" placeholder="p.sh. Vargjet lineare" required>
+                            </div>
+                        </div>
+
+                        <div class="diary-inputs-row">
+                            <div class="form-group">
+                                <label><i class="fas fa-book-open"></i> Tema 2</label>
+                                <input type="text" id="tema2" placeholder="p.sh. Zgjidhja grafike">
+                            </div>
                         </div>
                     </div>
 
                     <div class="info-box" style="background: rgba(16, 163, 127, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #10a37f;">
                         <p style="margin: 0; color: #10a37f; font-size: 14px;">
-                            <i class="fas fa-info-circle"></i> <strong>Automatizim AI:</strong> Nëse këto fushat janë bosh, AI do të nxirren temën automatikisht nga fotot e librit. Ngarko fotot më poshtë për rezultate më të mira.
+                            <i class="fas fa-info-circle"></i> <strong>Udhëzim:</strong> Këto fusha plotësohen manualisht dhe shfaqen në dokumentin Word. AI do të fokusohet vetëm te Burimet, Lidhja, Kompetencat, Fjalët Kyçe dhe Metodologjia.
                         </p>
                     </div>
 

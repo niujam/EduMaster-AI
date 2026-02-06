@@ -280,22 +280,29 @@ function createSidebarToggle() {
     toggle.innerHTML = '☰';
     toggle.type = 'button';
     toggle.addEventListener('click', toggleSidebar);
+    toggle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+    }, { passive: false });
     document.body.appendChild(toggle);
     return toggle;
 }
 
 function toggleSidebar() {
     const isMobile = window.innerWidth <= 768;
-    
-    sidebar.classList.toggle('closed');
-    mainContent.classList.toggle('full-width');
-    
-    // Mobile-specific: Force display: block !important
-    if (isMobile && !sidebar.classList.contains('closed')) {
-        sidebar.style.display = 'block !important';
-        sidebar.style.zIndex = '9998 !important';
-    } else if (isMobile) {
-        sidebar.style.display = 'none';
+
+    if (isMobile) {
+        const isActive = sidebar.classList.contains('active') || sidebar.classList.contains('visible');
+        if (isActive) {
+            sidebar.classList.remove('active', 'visible');
+            sidebar.classList.add('closed');
+        } else {
+            sidebar.classList.add('active', 'visible');
+            sidebar.classList.remove('closed');
+        }
+    } else {
+        sidebar.classList.toggle('closed');
+        mainContent.classList.toggle('full-width');
     }
     
     // Save state to localStorage
@@ -381,10 +388,18 @@ if (buyCreditsNavBtn) {
 // ===================================
 if (toggleSidebarBtn) {
     toggleSidebarBtn.addEventListener('click', toggleSidebar);
+    toggleSidebarBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+    }, { passive: false });
 }
 
 if (closeSidebarBtn) {
     closeSidebarBtn.addEventListener('click', toggleSidebar);
+    closeSidebarBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+    }, { passive: false });
 }
 
 // Restore sidebar state on load
@@ -587,11 +602,14 @@ function removePhoto(index) {
 window.removePhoto = removePhoto;
 
 function updateGenerateButtonState() {
-    const subject = document.getElementById('subject').value.trim();
-    const grade = document.getElementById('grade').value.trim();
+    const fusha = document.getElementById('fusha').value.trim();
+    const lenda = document.getElementById('lenda').value.trim();
+    const shkalla = document.getElementById('shkalla').value.trim();
+    const klasa = document.getElementById('klasa').value.trim();
+    const tema1 = document.getElementById('tema1').value.trim();
     
     // Button is enabled if: required fields are filled AND at least one photo is uploaded
-    const requiredFieldsFilled = subject && grade;
+    const requiredFieldsFilled = fusha && lenda && shkalla && klasa && tema1;
     const hasPhotos = uploadedPhotos.length > 0;
     
     generateBtn.disabled = !(requiredFieldsFilled && hasPhotos);
@@ -606,8 +624,11 @@ function updateGenerateButtonState() {
 }
 
 // Listen for changes in required fields to update button state
-document.getElementById('subject').addEventListener('input', updateGenerateButtonState);
-document.getElementById('grade').addEventListener('input', updateGenerateButtonState);
+document.getElementById('fusha').addEventListener('input', updateGenerateButtonState);
+document.getElementById('lenda').addEventListener('input', updateGenerateButtonState);
+document.getElementById('shkalla').addEventListener('input', updateGenerateButtonState);
+document.getElementById('klasa').addEventListener('input', updateGenerateButtonState);
+document.getElementById('tema1').addEventListener('input', updateGenerateButtonState);
 
 // ===================================
 // Generate Diary Handler
@@ -623,12 +644,13 @@ generateForm.addEventListener('submit', async (e) => {
     }
     
     const formData = {
-        subject: document.getElementById('subject').value.trim(),
-        grade: document.getElementById('grade').value.trim(),
-        date: new Date().toLocaleDateString('sq-AL', { year: 'numeric', month: 'long', day: 'numeric' }),
-        topic1: document.getElementById('topic1').value.trim(),
-        topic2: document.getElementById('topic2').value.trim() || '', // Empty string if not filled
-        topic: document.getElementById('topic1').value.trim(), // Keep as 'topic' for backwards compatibility
+        fusha: document.getElementById('fusha').value.trim(),
+        lenda: document.getElementById('lenda').value.trim(),
+        shkalla: document.getElementById('shkalla').value.trim(),
+        klasa: document.getElementById('klasa').value.trim(),
+        tema_1: document.getElementById('tema1').value.trim(),
+        tema_2: document.getElementById('tema2').value.trim() || '',
+        topic: document.getElementById('tema1').value.trim(), // Backwards compatibility for history title
         isMultipleThemes: multipleThemesCheckbox.checked,
         competences: '',
         duration: '45' // Default, AI may override
@@ -677,31 +699,31 @@ generateForm.addEventListener('submit', async (e) => {
 // ===================================
 // Synchronized AI Lesson Plan Generator
 async function generateDiaryWithAI(formData) {
-    const topic1 = formData.topic1 || formData.topic || 'Tema e Mësimit';
-    const topic2 = formData.topic2 || '';
+        const tema1 = formData.tema_1 || 'Tema e Mësimit';
+        const tema2 = formData.tema_2 || '';
     
-  const prompt = `Je një mësues ekspert që krijon planifikime mësimore të detajuara.
+    const prompt = `Je një mësues ekspert. INJORO fushat manuale: fusha, lënda, shkalla, klasa, tema_1, tema_2.
+Fokuso vetëm te 10 fushat e mëposhtme. Përdor gjuhë të pastër akademike shqipe.
 
-UDHËZIME KRYESORE:
-1. ANALIZO foton e ngarkuar. Përshkruaj ecurinë e orës në pika të gjata.
-2. Përmend mësuesin, nxënësit, mjetet dhe aktivitetet e shikuara në foto.
-3. Përshkruaj hapat e mësuesit, si ndahen nxënësit në grupe, çfarë pyetjesh bëhen.
+RREGULLA UNIVERSALE:
+1. Përshtat shembujt me lëndën dhe temën (Matematikë, Informatikë, Biologji, Gjuhë Shqipe, etj.).
+2. Kompetencat (rezultatet) duhet të jenë MINIMUM 5 dhe pa numërim "Kompetenca 1".
+3. Ndërtimi i njohurive duhet të jetë i gjatë, teorik dhe me shembuj konkretë ushtrimesh ose raste studimi.
+4. Lidhja me njohuritë e mëparshme duhet të krijojë urë logjike me temën aktuale.
+5. Situata, lidhja, burimet, fjalët kyçe, metodologjia, përforcimi dhe vlerësimi duhet të bazohen në foto.
 
-Kthe një objekt JSON me këto çelësa:
+Kthe VETËM objektin JSON me KËTO 10 ÇELËSA:
 {
-  "tema_1": "${topic1}",
-  "tema_2": "${topic2 || ""}",
-  "situata": "Situata problemore nga foto",
-  "fushat": "Fusha e relacionuar me përmbajtjen e fotos",
-  "burimet": "Burimet dhe mjetet e shihen në foto",
-  "rezultatet": "-> Kompetenca 1\\n-> Kompetenca 2\\n-> Kompetenca 3\\n-> Kompetenca 4",
-  "fjalet_kyçe": "Termat shkencorë nga foto",
-  "metodologjia": "Metoda bazuar te lloji i ushtrimit në foto",
-  "lidhja_e_temes_me_njohurite_e_meparshme": "Përshkruaj konceptet e nevojshme dhe shembuj konkretë nga materialet e kaluara.",
-  "ndertimi_i_njohurive": "Përshkruaj hapat e mësuesit: si hap orën, demonstrimin, ndajën në grupe, pyetjet specifike dhe udhëzimin.",
-  "perforcimi_i_te_nxenit": "Jep 2-3 ushtrime të ngjashme me ato në foto dhe shpjego si mësuesi jep feedback.",
-  "shenime_vleresuese": "-> N2: Përshkruan konceptet\\n-> N3: Zbaton ushtrimet\\n-> N4: Analizon situata komplekse",
-  "detyra_shtepie": "2 ushtrime specifike nga faqja e librit"
+    "situata": "Situata problemore nga foto (fiks, pa përgjithësime)",
+    "fushat": "Lidhja me fushat e tjera (fiks si në foto)",
+    "burimet": "Lista e burimeve si në foto (p.sh. Libri i nxënësit fq 121-125, drejtëza, trekëndësh)",
+    "rezultatet": "Zbaton rregullat e...\\nIdentifikon elementet...\\nAnalizon rastet...\\nArgumenton zgjidhjet...\\nPërdor konceptet...",
+    "fjalet_kyce": "Fjalët kyçe nga foto, ndara me presje",
+    "metodologjia": "Metodologjia dhe veprimtaritë e nxënësve",
+    "lidhja_e_temes_me_njohurite_e_meparshme": "Urë logjike mes temës aktuale dhe njohurive të mëparshme",
+    "ndertimi_i_njohurive": "Përshkrim i gjatë me teori + shembuj konkretë nga tema",
+    "perforcimi_i_te_nxenit": "Ushtrime të ngjashme dhe mënyra e kontrollit",
+    "shenime_vleresuese": "N2: ...\\nN3: ...\\nN4: ..."
 }
 
 RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
@@ -714,7 +736,7 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
                 'Authorization': `Bearer ${await firebase.auth().currentUser.getIdToken()}`
             },
             body: JSON.stringify({
-                systemInstruction: "Je një mësues ekspert. Përshkruaj ecurinë e orës në detaje. Përmend mësuesin, nxënësit, mjetet dhe aktivitetet e shikuara në foto.",
+                systemInstruction: "Je një mësues ekspert. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 10 çelësat e kërkuar dhe asnjë tekst tjetër. Përdor shqipe akademike dhe përshtat shembujt me lëndën e temës.",
                 prompt: prompt,
                 photoUrls: uploadedPhotos.map(p => p.url) || [],
                 formData: formData,
@@ -758,19 +780,35 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
             throw new Error('Përgjigja e AI-t nuk është JSON i vlefshëm: ' + e.message);
         }
 
+        // Normalize key name and override manual fields so Word/template always uses user input
+        if (parsedResult.fjalet_kyce && !parsedResult.fjalet_kyçe) {
+            parsedResult.fjalet_kyçe = parsedResult.fjalet_kyce;
+        }
+        parsedResult.fusha = formData.fusha;
+        parsedResult.lenda = formData.lenda;
+        parsedResult.shkalla = formData.shkalla;
+        parsedResult.klasa = formData.klasa;
+        parsedResult.tema_1 = formData.tema_1;
+        parsedResult.tema_2 = formData.tema_2 || '';
+        parsedResult.date = '________';
+
         // Ensure all required fields exist with default values
         const requiredFields = [
-            'tema_1', 'tema_2', 'situata', 'fushat', 'burimet', 'rezultatet', 
-            'fjalet_kyçe', 'metodologjia', 'lidhja_e_temes_me_njohurite_e_meparshme',
-            'ndertimi_i_njohurive', 'perforcimi_i_te_nxenit', 'shenime_vleresuese', 'detyra_shtepie'
+            'situata', 'fushat', 'burimet', 'rezultatet', 'fjalet_kyçe',
+            'metodologjia', 'lidhja_e_temes_me_njohurite_e_meparshme',
+            'ndertimi_i_njohurive', 'perforcimi_i_te_nxenit', 'shenime_vleresuese'
         ];
         
         requiredFields.forEach(field => {
-            if (!parsedResult[field] || parsedResult[field].trim() === '') {
-                parsedResult[field] = `[${field} - nuk u plotësua]`;
+            if (!parsedResult[field] || (typeof parsedResult[field] === 'string' && parsedResult[field].trim() === '')) {
+                parsedResult[field] = `[${field} - nuk u plotësua nga AI]`;
                 console.warn(`⚠️ Field ${field} is empty, using placeholder`);
             }
         });
+
+        if (!parsedResult.detyra_shtepie) {
+            parsedResult.detyra_shtepie = '';
+        }
 
         console.log('✅ All fields validated:', parsedResult);
         return parsedResult;
@@ -786,6 +824,15 @@ function displayDiaryContent(jsonData, formData) {
     const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
     
     console.log('🔄 Displaying diary content:', data);
+
+    // Force manual fields into the data used for export
+    data.fusha = formData.fusha;
+    data.lenda = formData.lenda;
+    data.shkalla = formData.shkalla;
+    data.klasa = formData.klasa;
+    data.tema_1 = formData.tema_1;
+    data.tema_2 = formData.tema_2 || '';
+    data.date = '________';
     
     // Store in window.currentDiary (new primary variable)
     window.currentDiary = data;
@@ -829,15 +876,15 @@ function generateHTMLFromJSON(data, formData) {
     const htmlTemplate = `
 <div style="width: 100%; margin: 0; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; padding: 0;">
     <h1 style="text-align: center;">PLANIFIKIMI I ORËVE TË MËSIMIT</h1>
-    <div style="text-align: right; margin-bottom: 10px; font-style: italic;">Data ${formData.date}</div>
+    <div style="text-align: right; margin-bottom: 10px; font-style: italic;">Data __________</div>
 
     <!-- TABELA 1: Informacioni bazë -->
     <table style="width: 100%; border-collapse: collapse; border: 2px solid #000;">
         <tr>
-            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Fusha: ${formData.subject}</strong></td>
-            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Lënda: ${formData.subject}</strong></td>
-            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Shkalla: ${formData.grade}</strong></td>
-            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Klasa: ${formData.grade}</strong></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Fusha: ${formData.fusha || data.fusha || ''}</strong></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Lënda: ${formData.lenda || data.lenda || ''}</strong></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Shkalla: ${formData.shkalla || data.shkalla || ''}</strong></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 25%;"><strong>Klasa: ${formData.klasa || data.klasa || ''}</strong></td>
         </tr>
     </table>
 
@@ -962,11 +1009,10 @@ function renderHistory() {
         <div class="history-item" data-id="${item.id}">
             <div class="history-header">
                 <div class="history-info">
-                    <h3>${item.topic}</h3>
+                    <h3>${item.tema_1 || item.topic || ''}</h3>
                     <div class="history-meta">
-                        <span><i class="fas fa-book"></i> ${item.subject}</span>
-                        <span><i class="fas fa-layer-group"></i> ${item.grade}</span>
-                        <span><i class="fas fa-calendar"></i> ${item.date}</span>
+                        <span><i class="fas fa-book"></i> ${item.lenda || ''}</span>
+                        <span><i class="fas fa-layer-group"></i> ${item.shkalla || ''} / ${item.klasa || ''}</span>
                     </div>
                 </div>
                 <div class="history-actions">
@@ -993,8 +1039,12 @@ function viewHistoryItem(id) {
     navigateToPage('generate');
     
     // Fill form (only existing fields)
-    document.getElementById('subject').value = item.subject;
-    document.getElementById('grade').value = item.grade;
+    document.getElementById('fusha').value = item.fusha || '';
+    document.getElementById('lenda').value = item.lenda || '';
+    document.getElementById('shkalla').value = item.shkalla || '';
+    document.getElementById('klasa').value = item.klasa || '';
+    document.getElementById('tema1').value = item.tema_1 || '';
+    document.getElementById('tema2').value = item.tema_2 || '';
     
     // Show result
     generatedContent.innerHTML = item.content;
