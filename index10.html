@@ -233,27 +233,49 @@
 
                     <!-- Photo Upload Section -->
                     <div class="form-group">
-                        <label><i class="fas fa-images"></i> Ngarko Fotot nga Libri (Opsionale - max 10)</label>
-                        <p class="form-help-text">💡 Ju lutem, bëjini fotot sa më të qarta dhe sipas radhës së faqeve në libër, në mënyrë që AI të gjenerojë ditarin pa gabime.</p>
-                        
+                        <label><i class="fas fa-star"></i> Ngarko Ditarin Model (Vetëm 1 foto)</label>
+                        <p class="form-help-text">💡 Kjo foto përdoret si model i strukturës, stilit dhe profesionalizmit.</p>
+
                         <div class="photo-upload-container">
-                            <input 
-                                type="file" 
-                                id="photoInput" 
-                                accept="image/*" 
-                                multiple 
+                            <input
+                                type="file"
+                                id="modelPhotoInput"
+                                accept="image/*"
                                 style="display: none;"
                             >
-                            <button type="button" class="upload-photos-btn" id="uploadPhotosBtn">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                Ngarko Fotot
+                            <button type="button" class="upload-photos-btn" id="uploadModelBtn">
+                                <i class="fas fa-star"></i>
+                                Ngarko Modelin
                             </button>
-                            <span class="photo-count" id="photoCount">0/3 foto të ngarkuara</span>
+                            <span class="photo-count" id="modelPhotoStatus">Asnje model i ngarkuar</span>
                         </div>
 
-                        <!-- Photo Preview Container -->
-                        <div class="photo-preview-container" id="photoPreviewContainer">
-                            <!-- Preview images will be inserted here -->
+                        <div class="photo-preview-container" id="modelPhotoPreview">
+                            <!-- Model preview will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-images"></i> Ngarko Faqet e Librit (Deri në 10 foto)</label>
+                        <p class="form-help-text">💡 Ju lutem, bëjini fotot sa më të qarta dhe sipas radhës së faqeve në libër.</p>
+
+                        <div class="photo-upload-container">
+                            <input
+                                type="file"
+                                id="contentPhotosInput"
+                                accept="image/*"
+                                multiple
+                                style="display: none;"
+                            >
+                            <button type="button" class="upload-photos-btn" id="uploadContentBtn">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                Ngarko Faqet
+                            </button>
+                            <span class="photo-count" id="contentPhotoCount">0/10 foto të ngarkuara</span>
+                        </div>
+
+                        <div class="photo-preview-container" id="contentPhotoPreview">
+                            <!-- Content previews will be inserted here -->
                         </div>
                     </div>
                     <!-- Multiple Themes Checkbox -->

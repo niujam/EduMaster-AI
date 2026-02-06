@@ -4,7 +4,10 @@
 let currentUser = null;
 let userCredits = 0;
 let userHistory = [];
-let uploadedPhotos = []; // Array për të ruajtur fotot e ngarkuara
+let modelPhoto = null; // Foto model (vetem 1)
+let contentPhotos = []; // Fotot e librit (deri ne 10)
+const MODEL_FALLBACK_PATH = 'model-matematike.jpg';
+let cachedFallbackModelBase64 = null;
 
 // ===================================
 // DOM Elements - Navigation
@@ -36,10 +39,14 @@ const copyBtn = document.getElementById('copyBtn');
 // ===================================
 // DOM Elements - Photo Upload
 // ===================================
-const photoInput = document.getElementById('photoInput');
-const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
-const photoPreviewContainer = document.getElementById('photoPreviewContainer');
-const photoCount = document.getElementById('photoCount');
+const modelPhotoInput = document.getElementById('modelPhotoInput');
+const uploadModelBtn = document.getElementById('uploadModelBtn');
+const modelPhotoPreview = document.getElementById('modelPhotoPreview');
+const modelPhotoStatus = document.getElementById('modelPhotoStatus');
+const contentPhotosInput = document.getElementById('contentPhotosInput');
+const uploadContentBtn = document.getElementById('uploadContentBtn');
+const contentPhotoPreview = document.getElementById('contentPhotoPreview');
+const contentPhotoCount = document.getElementById('contentPhotoCount');
 const multipleThemesCheckbox = document.getElementById('multipleThemesCheckbox');
 
 // ===================================
@@ -54,123 +61,10 @@ if (!creditsCount || !creditsDisplay || !profileCredits) {
     console.warn('⚠️ Some credit display elements are missing');
 }
 
-// ===================================
-// Initialize App
-// ===================================
-function initializeApp(user) {
-    currentUser = user;
-    
-    // Set user name with safety checks
-    const userName = document.getElementById('userName');
-    const profileName = document.getElementById('profileName');
-    const profileEmail = document.getElementById('profileEmail');
-    const securityEmail = document.getElementById('securityEmail');
-    
-    const displayName = user.displayName || 'Përdorues';
-    const email = user.email || '';
-    
-    if (userName) userName.textContent = displayName;
-    if (profileName) profileName.textContent = displayName;
-    if (profileEmail) profileEmail.textContent = email;
-    if (securityEmail) securityEmail.textContent = email;
-    
-    // Load user data
-    loadUserData();
-    
-    // Setup real-time listeners
-    setupRealtimeListeners();
-    
-    // Check for URL parameters (e.g., ?page=buyCredits from Stripe cancel)
-    const urlParams = new URLSearchParams(window.location.search);
-    const pageParam = urlParams.get('page');
-    if (pageParam) {
-        console.log(`Navigating to page from URL parameter: ${pageParam}`);
-        navigateToPage(pageParam);
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    // Check and start tour if user is new
-    if (typeof checkAndStartTour === 'function') {
-        checkAndStartTour();
-    }
-    
-    // Setup legal links after a short delay
-    setTimeout(() => {
-        setupLegalLinks();
-        console.log('Legal links setup completed');
-    }, 500);
-}
+// Make remove helpers global
+window.removeModelPhoto = removeModelPhoto;
+window.removeContentPhoto = removeContentPhoto;
 
-// ===================================
-// Load User Data
-// ===================================
-async function loadUserData() {
-    if (!currentUser) {
-        console.warn('No user logged in, skipping data load');
-        return;
-    }
-    
-    try {
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            userCredits = userData.credits || 0;
-            
-            updateCreditsDisplay(userCredits);
-            updateStats(userData);
-        } else {
-            console.log('User document does not exist, creating new user profile');
-            // Create initial user document
-            await db.collection('users').doc(currentUser.uid).set({
-                credits: 0,
-                totalGenerated: 0,
-                totalDownloads: 0,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            updateCreditsDisplay(0);
-        }
-        
-        // Load history
-        await loadHistory();
-        
-    } catch (error) {
-        console.error('Error loading user data:', error);
-        // Don't show error toast on initial load to avoid annoying users
-        console.warn('Failed to load user data, will retry automatically');
-        // Retry after 2 seconds
-        setTimeout(() => loadUserData(), 2000);
-    }
-}
-
-// ===================================
-// Setup Realtime Listeners
-// ===================================
-function setupRealtimeListeners() {
-    // Listen to user credits changes
-    db.collection('users').doc(currentUser.uid)
-        .onSnapshot((doc) => {
-            if (doc.exists) {
-                const userData = doc.data();
-                userCredits = userData.credits || 0;
-                updateCreditsDisplay(userCredits);
-                updateStats(userData);
-            }
-        });
-    
-    // Listen to history changes
-    db.collection('users').doc(currentUser.uid)
-        .collection('history')
-        .orderBy('createdAt', 'desc')
-        .onSnapshot((snapshot) => {
-            userHistory = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            renderHistory();
-        });
-}
 
 // ===================================
 // Add Credits (DEBUG/ADMIN)
@@ -195,79 +89,6 @@ async function addCredits(amount) {
 
 // Make it available in console for testing
 window.addCredits = addCredits;
-
-// ===================================
-// Update Credits Display
-// ===================================
-function updateCreditsDisplay(credits) {
-    if (creditsCount) creditsCount.textContent = credits;
-    if (creditsDisplay) creditsDisplay.textContent = credits;
-    if (profileCredits) profileCredits.textContent = credits;
-}
-
-// ===================================
-// Update Stats
-// ===================================
-function updateStats(userData) {
-    const totalGenerated = document.getElementById('totalGenerated');
-    const totalDownloads = document.getElementById('totalDownloads');
-    const profileGenerated = document.getElementById('profileGenerated');
-    
-    if (totalGenerated) totalGenerated.textContent = userData.totalGenerated || 0;
-    if (totalDownloads) totalDownloads.textContent = userData.totalDownloads || 0;
-    if (profileGenerated) profileGenerated.textContent = userData.totalGenerated || 0;
-}
-
-// ===================================
-// Navigation System
-// ===================================
-navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetPage = item.dataset.page;
-        navigateToPage(targetPage);
-    });
-});
-
-function navigateToPage(pageName) {
-    console.log(`Navigating to page: ${pageName}`);
-    
-    // Close sidebar on navigation
-    sidebar.classList.remove('open');
-    document.querySelector('.sidebar-overlay')?.remove();
-    
-    // Hide hamburger toggle when navigation happens (except on mobile)
-    if (window.innerWidth > 968) {
-        document.body.classList.remove('sidebar-closed');
-    }
-    
-    // Update active nav item (only for sidebar items)
-    navItems.forEach(nav => nav.classList.remove('active'));
-    const activeNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    if (activeNav) {
-        activeNav.classList.add('active');
-    }
-    
-    // Update active page
-    pages.forEach(page => page.classList.remove('active'));
-    const activePage = document.getElementById(`${pageName}Page`);
-    if (activePage) {
-        activePage.classList.add('active');
-        console.log(`Activated page: ${pageName}Page`);
-        
-        // Scroll to top
-        window.scrollTo(0, 0);
-    } else {
-        console.error(`Page not found: ${pageName}Page`);
-    }
-    
-    // Show/hide back button
-    if (pageName === 'home') {
-        backBtn.style.display = 'none';
-    } else {
-        backBtn.style.display = 'flex';
-    }
-}
 
 // ===================================
 // Sidebar Toggle Button
@@ -304,12 +125,10 @@ function toggleSidebar() {
         sidebar.classList.toggle('closed');
         mainContent.classList.toggle('full-width');
     }
-    
-    // Save state to localStorage
+
     const isClosed = sidebar.classList.contains('closed');
     localStorage.setItem('sidebarClosed', isClosed);
-    
-    // Update toggle button icon
+
     const toggleButtons = document.querySelectorAll('.sidebar-toggle');
     toggleButtons.forEach(btn => {
         btn.innerHTML = isClosed ? '→' : '☰';
@@ -317,28 +136,25 @@ function toggleSidebar() {
         btn.style.display = 'block !important';
         btn.style.zIndex = '9999 !important';
     });
-    
+
     console.log('Sidebar toggled:', isClosed ? 'closed' : 'open', '(Mobile:', isMobile, ')');
 }
 
 // Auto-close sidebar when clicking nav items (all devices)
 navItems.forEach(item => {
     item.addEventListener('click', () => {
-        // Close sidebar automatically on navigation
         if (!sidebar.classList.contains('closed')) {
             sidebar.classList.add('closed');
             mainContent.classList.add('full-width');
             localStorage.setItem('sidebarClosed', 'true');
-            
-            // Update toggle button icon
+
             const toggleButtons = document.querySelectorAll('.sidebar-toggle');
             toggleButtons.forEach(btn => {
                 btn.innerHTML = '→';
                 btn.title = 'Hap Sidebar-in';
             });
         }
-        
-        // Remove mobile overlay if exists
+
         sidebar.classList.remove('open');
         document.querySelector('.sidebar-overlay')?.remove();
     });
@@ -352,22 +168,22 @@ if (!document.querySelector('.sidebar-toggle')) {
     toggle.type = 'button';
     toggle.style.cssText = 'z-index: 9999 !important; display: block !important;';
     toggle.setAttribute('data-touch-target', 'true');
-    
-    // Handle both click and touch events
+
     const handleToggle = (e) => {
         e.preventDefault();
         e.stopPropagation();
         console.log('Toggle clicked/touched');
         toggleSidebar();
     };
-    
+
     toggle.addEventListener('click', handleToggle);
     toggle.addEventListener('touchstart', handleToggle, { passive: false });
     toggle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
-    
+
     document.body.appendChild(toggle);
     console.log('✅ Sidebar toggle button created');
 }
+
 backBtn.addEventListener('click', () => {
     navigateToPage('home');
 });
@@ -535,100 +351,170 @@ window.optoFoto = optoFoto;
 // ===================================
 // Photo Upload Handlers
 // ===================================
-uploadPhotosBtn.addEventListener('click', () => {
-    photoInput.click();
-});
+if (uploadModelBtn && modelPhotoInput) {
+    uploadModelBtn.addEventListener('click', () => {
+        modelPhotoInput.click();
+    });
+}
 
-photoInput.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files);
-    
-    // Limit to 10 photos total
-    if (uploadedPhotos.length + files.length > 10) {
-        showToast(`Mund të ngarkohet maksimalisht 10 foto. Keni ${uploadedPhotos.length} foto.`, 'warning');
-        return;
-    }
-    
-    // Process each file with optimization
-    for (const file of files) {
-        if (file.type.startsWith('image/')) {
-            try {
-                showToast(`📸 Po optimizohet: ${file.name}...`, 'info');
-                
-                // Optimize the photo
-                const optimizedBase64 = await optoFoto(file);
-                
-                uploadedPhotos.push({
-                    name: file.name,
-                    base64: optimizedBase64
-                });
-                
-                renderPhotoPreview();
-                updateGenerateButtonState();
-                
-                showToast(`✅ ${file.name} u ngarkua me sukses`, 'success');
-            } catch (error) {
-                console.error('Gabim në optimizimin e fotos:', error);
-                showToast(`❌ Gabim në ${file.name}: ${error.message}`, 'error');
+if (uploadContentBtn && contentPhotosInput) {
+    uploadContentBtn.addEventListener('click', () => {
+        contentPhotosInput.click();
+    });
+}
+
+if (modelPhotoInput) {
+    modelPhotoInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !file.type.startsWith('image/')) return;
+
+        try {
+            showToast(`📸 Po optimizohet modeli: ${file.name}...`, 'info');
+            const optimizedBase64 = await optoFoto(file);
+            modelPhoto = { name: file.name, base64: optimizedBase64 };
+            renderModelPreview();
+            updateGenerateButtonState();
+            showToast(`✅ Modeli u ngarkua me sukses`, 'success');
+        } catch (error) {
+            console.error('Gabim në optimizimin e modelit:', error);
+            showToast(`❌ Gabim në model: ${error.message}`, 'error');
+        }
+    });
+}
+
+if (contentPhotosInput) {
+    contentPhotosInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+
+        if (contentPhotos.length + files.length > 10) {
+            showToast(`Mund të ngarkohen maksimalisht 10 foto. Keni ${contentPhotos.length} foto.`, 'warning');
+            return;
+        }
+
+        for (const file of files) {
+            if (file.type.startsWith('image/')) {
+                try {
+                    showToast(`📸 Po optimizohet: ${file.name}...`, 'info');
+                    const optimizedBase64 = await optoFoto(file);
+                    contentPhotos.push({ name: file.name, base64: optimizedBase64 });
+                    renderContentPreview();
+                    updateGenerateButtonState();
+                    showToast(`✅ ${file.name} u ngarkua me sukses`, 'success');
+                } catch (error) {
+                    console.error('Gabim në optimizimin e fotos:', error);
+                    showToast(`❌ Gabim në ${file.name}: ${error.message}`, 'error');
+                }
             }
         }
-    }
-});
+    });
+}
 
-function renderPhotoPreview() {
-    photoPreviewContainer.innerHTML = '';
-    uploadedPhotos.forEach((photo, index) => {
+function renderModelPreview() {
+    if (!modelPhotoPreview || !modelPhotoStatus) return;
+    modelPhotoPreview.innerHTML = '';
+    if (!modelPhoto) {
+        modelPhotoStatus.textContent = 'Asnje model i ngarkuar';
+        return;
+    }
+
+    const photoDiv = document.createElement('div');
+    photoDiv.className = 'photo-preview';
+    photoDiv.innerHTML = `
+        <img src="${modelPhoto.base64}" alt="Model Photo">
+        <button type="button" class="photo-preview-remove" onclick="removeModelPhoto()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    modelPhotoPreview.appendChild(photoDiv);
+    modelPhotoStatus.textContent = 'Modeli u ngarkua';
+}
+
+function renderContentPreview() {
+    if (!contentPhotoPreview || !contentPhotoCount) return;
+    contentPhotoPreview.innerHTML = '';
+    contentPhotos.forEach((photo, index) => {
         const photoDiv = document.createElement('div');
         photoDiv.className = 'photo-preview';
         photoDiv.innerHTML = `
             <img src="${photo.base64}" alt="Photo ${index + 1}">
-            <button type="button" class="photo-preview-remove" onclick="removePhoto(${index})">
+            <button type="button" class="photo-preview-remove" onclick="removeContentPhoto(${index})">
                 <i class="fas fa-times"></i>
             </button>
         `;
-        photoPreviewContainer.appendChild(photoDiv);
+        contentPhotoPreview.appendChild(photoDiv);
     });
-    
-    // Update photo count
-    photoCount.textContent = `${uploadedPhotos.length}/10 foto të ngarkuara`;
+
+    contentPhotoCount.textContent = `${contentPhotos.length}/10 foto të ngarkuara`;
 }
 
-function removePhoto(index) {
-    uploadedPhotos.splice(index, 1);
-    renderPhotoPreview();
+function removeModelPhoto() {
+    modelPhoto = null;
+    renderModelPreview();
     updateGenerateButtonState();
 }
 
-// Make removePhoto global
-window.removePhoto = removePhoto;
+function removeContentPhoto(index) {
+    contentPhotos.splice(index, 1);
+    renderContentPreview();
+    updateGenerateButtonState();
+}
+
+// Make remove helpers global
+window.removeModelPhoto = removeModelPhoto;
+window.removeContentPhoto = removeContentPhoto;
+
+async function loadFallbackModelBase64() {
+    if (cachedFallbackModelBase64) return cachedFallbackModelBase64;
+    try {
+        const response = await fetch(MODEL_FALLBACK_PATH);
+        if (!response.ok) throw new Error('Fallback model not found');
+        const blob = await response.blob();
+        const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Gabim në leximin e modelit rezervë'));
+            reader.readAsDataURL(blob);
+        });
+        cachedFallbackModelBase64 = base64;
+        return base64;
+    } catch (error) {
+        console.warn('Nuk u gjet modeli rezervë:', error);
+        return null;
+    }
+}
 
 function updateGenerateButtonState() {
-    const fusha = document.getElementById('fusha').value.trim();
-    const lenda = document.getElementById('lenda').value.trim();
-    const shkalla = document.getElementById('shkalla').value.trim();
-    const klasa = document.getElementById('klasa').value.trim();
-    const tema1 = document.getElementById('tema1').value.trim();
+    const fusha = document.getElementById('fusha')?.value?.trim() || '';
+    const lenda = document.getElementById('lenda')?.value?.trim() || '';
+    const shkalla = document.getElementById('shkalla')?.value?.trim() || '';
+    const klasa = document.getElementById('klasa')?.value?.trim() || '';
+    const tema1 = document.getElementById('tema1')?.value?.trim() || '';
     
     // Button is enabled if: required fields are filled AND at least one photo is uploaded
     const requiredFieldsFilled = fusha && lenda && shkalla && klasa && tema1;
-    const hasPhotos = uploadedPhotos.length > 0;
+    const hasPhotos = contentPhotos.length > 0;
     
-    generateBtn.disabled = !(requiredFieldsFilled && hasPhotos);
+    if (generateBtn) {
+        generateBtn.disabled = !(requiredFieldsFilled && hasPhotos);
+    }
     
     // Update button text
     const creditText = `${window.CONFIG.credits.perGeneration} Kredit`;
-    if (uploadedPhotos.length > 0) {
-        generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
-    } else {
-        generateBtn.innerHTML = `<i class="fas fa-camera"></i><span>Ngarkoni Foto (Detyruar)</span>`;
+    if (generateBtn) {
+        if (contentPhotos.length > 0) {
+            generateBtn.innerHTML = `<i class="fas fa-magic"></i><span>Gjeneroni Ditarin (${creditText})</span>`;
+        } else {
+            generateBtn.innerHTML = `<i class="fas fa-camera"></i><span>Ngarkoni Foto (Detyruar)</span>`;
+        }
     }
 }
 
 // Listen for changes in required fields to update button state
-document.getElementById('fusha').addEventListener('input', updateGenerateButtonState);
-document.getElementById('lenda').addEventListener('input', updateGenerateButtonState);
-document.getElementById('shkalla').addEventListener('input', updateGenerateButtonState);
-document.getElementById('klasa').addEventListener('input', updateGenerateButtonState);
-document.getElementById('tema1').addEventListener('input', updateGenerateButtonState);
+document.getElementById('fusha')?.addEventListener('input', updateGenerateButtonState);
+document.getElementById('lenda')?.addEventListener('input', updateGenerateButtonState);
+document.getElementById('shkalla')?.addEventListener('input', updateGenerateButtonState);
+document.getElementById('klasa')?.addEventListener('input', updateGenerateButtonState);
+document.getElementById('tema1')?.addEventListener('input', updateGenerateButtonState);
 
 // ===================================
 // Generate Diary Handler
@@ -651,7 +537,7 @@ generateForm.addEventListener('submit', async (e) => {
         tema_1: document.getElementById('tema1').value.trim(),
         tema_2: document.getElementById('tema2').value.trim() || '',
         topic: document.getElementById('tema1').value.trim(), // Backwards compatibility for history title
-        isMultipleThemes: multipleThemesCheckbox.checked,
+        isMultipleThemes: multipleThemesCheckbox?.checked || false,
         competences: '',
         duration: '45' // Default, AI may override
     };
@@ -701,7 +587,7 @@ generateForm.addEventListener('submit', async (e) => {
 async function generateDiaryWithAI(formData) {
         const tema1 = formData.tema_1 || 'Tema e Mësimit';
         const tema2 = formData.tema_2 || '';
-        const hasExampleReference = uploadedPhotos.length > 0;
+        const hasExampleReference = !!modelPhoto;
         const exampleReferenceInstruction = hasExampleReference
             ? "Shiko foton e pare. Kjo eshte EXAMPLE_REFERENCE per strukturen, stilin, gjatesine dhe profesionalizmin. Perdor fotot e tjera per permbajtjen e re, por mos kopjo tekstin e modelit, vetem menyren e ndertimit te fjalive dhe ushtrimeve."
             : "";
@@ -735,10 +621,30 @@ Kthe VETËM objektin JSON me KËTO 10 ÇELËSA:
 RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
 
     try {
-        const photosPayload = uploadedPhotos.map((photo, index) => ({
-            base64: photo.base64,
-            role: index === 0 ? 'EXAMPLE_REFERENCE' : 'CONTENT_SOURCE'
-        }));
+        let photosPayload = [];
+        try {
+            if (hasExampleReference && modelPhoto?.base64) {
+                photosPayload.push({
+                    base64: modelPhoto.base64,
+                    role: 'EXAMPLE_REFERENCE'
+                });
+            }
+
+            contentPhotos.forEach((photo) => {
+                if (photo?.base64) {
+                    photosPayload.push({
+                        base64: photo.base64,
+                        role: 'CONTENT_SOURCE'
+                    });
+                }
+            });
+        } catch (photoError) {
+            console.warn('Photo payload issue, continuing with available photos:', photoError);
+            photosPayload = (contentPhotos || []).filter(p => p?.base64).map(p => ({
+                base64: p.base64,
+                role: 'CONTENT_SOURCE'
+            }));
+        }
 
         const response = await fetch(window.CONFIG.openai.endpoint, {
             method: 'POST',
