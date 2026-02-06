@@ -184,6 +184,34 @@ if (!document.querySelector('.sidebar-toggle')) {
     console.log('✅ Sidebar toggle button created');
 }
 
+// ===================================
+// Page Navigation
+// ===================================
+function navigateToPage(pageName) {
+    const targetPage = document.getElementById(`${pageName}Page`);
+    if (!targetPage) {
+        console.error(`Page not found: ${pageName}Page`);
+        return;
+    }
+
+    pages.forEach(page => {
+        page.style.display = 'none';
+    });
+    targetPage.style.display = 'block';
+
+    targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-page') === pageName);
+    });
+
+    if (pageName === 'home') {
+        backBtn.style.display = 'none';
+    } else {
+        backBtn.style.display = 'flex';
+    }
+}
+
 backBtn.addEventListener('click', () => {
     navigateToPage('home');
 });
