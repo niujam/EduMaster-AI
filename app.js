@@ -362,7 +362,7 @@ document.querySelectorAll('.action-card').forEach(card => {
 // ===================================
 /**
  * Optimizoni foton duke e zvogëluar në Canvas
- * dhe duke e konvertuar në Base64 me cilësi 0.7
+ * dhe duke e konvertuar në Base64 me cilësi 0.9
  * 
  * @param {File} file - Skedar imazh i ngarkuar
  * @returns {Promise<string>} - Base64 string i fotos të optimizuar
@@ -406,8 +406,8 @@ function optoFoto(file) {
                 // Vizato imazhin në canvas
                 ctx.drawImage(img, 0, 0, newWidth, newHeight);
                 
-                // Konverto në Base64 JPEG me cilësi 1.0 (maksimale për AI)
-                const optimizedBase64 = canvas.toDataURL('image/jpeg', 1.0);
+                // Konverto në Base64 JPEG me cilësi 0.9 për qartësi të lartë
+                const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.9);
                 
                 // Llogarit madhësine origjinale vs të optimizuar
                 const originalSize = (event.target.result.length / 1024).toFixed(2);
@@ -435,6 +435,41 @@ function optoFoto(file) {
         
         // Lexo skedarit si Data URL
         reader.readAsDataURL(file);
+    });
+}
+
+function optimizeBase64Image(base64) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            let newWidth = img.width;
+            let newHeight = img.height;
+            const maxSize = 1200;
+
+            if (img.width > img.height) {
+                if (img.width > maxSize) {
+                    newWidth = maxSize;
+                    newHeight = Math.round((img.height * maxSize) / img.width);
+                }
+            } else {
+                if (img.height > maxSize) {
+                    newHeight = maxSize;
+                    newWidth = Math.round((img.width * maxSize) / img.height);
+                }
+            }
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+            const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            resolve(optimizedBase64);
+        };
+        img.onerror = () => reject(new Error('Gabim në ngarkimin e imazhit'));
+        img.src = base64;
     });
 }
 
@@ -568,7 +603,7 @@ async function loadFallbackModelBase64() {
             reader.onerror = () => reject(new Error('Gabim në leximin e modelit rezervë'));
             reader.readAsDataURL(blob);
         });
-        cachedFallbackModelBase64 = base64;
+        cachedFallbackModelBase64 = await optimizeBase64Image(base64);
         return base64;
     } catch (error) {
         console.warn('Nuk u gjet modeli rezervë:', error);
@@ -614,6 +649,8 @@ document.getElementById('tema1')?.addEventListener('input', updateGenerateButton
 // ===================================
 generateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (generateBtn?.disabled) return;
     
     // Check credits
     if (userCredits < window.CONFIG.credits.perGeneration) {
@@ -637,7 +674,10 @@ generateForm.addEventListener('submit', async (e) => {
     
     try {
         showLoading(true);
-        generateBtn.disabled = true;
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Loading...</span>`;
+        }
         
         // Generate diary with OpenAI
         const generatedDiary = await generateDiaryWithAI(formData);
@@ -666,7 +706,10 @@ generateForm.addEventListener('submit', async (e) => {
         showToast('Gabim gjatë gjenerimit. Provoni përsëri.', 'error');
     } finally {
         showLoading(false);
-        generateBtn.disabled = false;
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            updateGenerateButtonState();
+        }
     }
 });
 
@@ -739,6 +782,12 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
             }));
         }
 
+        const payloadBytes = photosPayload.reduce((sum, photo) => sum + (photo.base64?.length || 0), 0);
+        const payloadMB = (payloadBytes / (1024 * 1024)).toFixed(2);
+        if (payloadBytes > 8 * 1024 * 1024) {
+            console.warn(`Payload i madh i fotove: ${payloadMB} MB. Mund te shkaktoje 413.`);
+        }
+
         const response = await fetch(window.CONFIG.openai.endpoint, {
             method: 'POST',
             headers: {
@@ -755,8 +804,11 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Gabim në gjenerimin e ditarit');
+            const errorText = await response.text();
+            const safeMessage = errorText && !errorText.trim().startsWith('<')
+                ? errorText
+                : 'Gabim në gjenerimin e ditarit. Ju lutem provoni përsëri.';
+            throw new Error(safeMessage);
         }
 
         const result = await response.json();
