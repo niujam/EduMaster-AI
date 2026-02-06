@@ -701,9 +701,15 @@ generateForm.addEventListener('submit', async (e) => {
 async function generateDiaryWithAI(formData) {
         const tema1 = formData.tema_1 || 'Tema e Mësimit';
         const tema2 = formData.tema_2 || '';
+        const hasExampleReference = uploadedPhotos.length > 0;
+        const exampleReferenceInstruction = hasExampleReference
+            ? "Shiko foton e pare. Kjo eshte EXAMPLE_REFERENCE per strukturen, stilin, gjatesine dhe profesionalizmin. Perdor fotot e tjera per permbajtjen e re, por mos kopjo tekstin e modelit, vetem menyren e ndertimit te fjalive dhe ushtrimeve."
+            : "";
     
     const prompt = `Je një mësues ekspert. INJORO fushat manuale: fusha, lënda, shkalla, klasa, tema_1, tema_2.
 Fokuso vetëm te 10 fushat e mëposhtme. Përdor gjuhë të pastër akademike shqipe.
+
+${exampleReferenceInstruction}
 
 RREGULLA UNIVERSALE:
 1. Përshtat shembujt me lëndën dhe temën (Matematikë, Informatikë, Biologji, Gjuhë Shqipe, etj.).
@@ -729,6 +735,11 @@ Kthe VETËM objektin JSON me KËTO 10 ÇELËSA:
 RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
 
     try {
+        const photosPayload = uploadedPhotos.map((photo, index) => ({
+            base64: photo.base64,
+            role: index === 0 ? 'EXAMPLE_REFERENCE' : 'CONTENT_SOURCE'
+        }));
+
         const response = await fetch(window.CONFIG.openai.endpoint, {
             method: 'POST',
             headers: {
@@ -738,7 +749,7 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
             body: JSON.stringify({
                 systemInstruction: "Je një mësues ekspert. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 10 çelësat e kërkuar dhe asnjë tekst tjetër. Përdor shqipe akademike dhe përshtat shembujt me lëndën e temës.",
                 prompt: prompt,
-                photoUrls: uploadedPhotos.map(p => p.url) || [],
+                photos: photosPayload,
                 formData: formData,
                 response_format: { "type": "json_object" }
             })
