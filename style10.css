@@ -1715,8 +1715,8 @@ body {
     }
 
     .main-content {
-        width: 95%;
-        margin: 0 auto;
+        width: 100%;
+        margin: 0;
         padding: var(--main-padding);
     }
 
@@ -1724,11 +1724,20 @@ body {
         padding: var(--main-padding);
     }
 
-    .generate-form {
-        width: 95%;
-        max-width: 95%;
+    #generatePage,
+    #historyPage,
+    #profilePage,
+    #settingsPage {
+        max-width: 100%;
+        margin: 0;
         padding: var(--main-padding);
-        margin: 0 auto 24px;
+    }
+
+    .generate-form {
+        width: 100%;
+        max-width: 100%;
+        padding: var(--main-padding);
+        margin: 0 0 24px;
     }
 
     input,
@@ -1736,6 +1745,29 @@ body {
     select,
     button {
         width: 100%;
+    }
+
+    .top-bar {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .top-bar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    .menu-btn {
+        position: relative;
+        z-index: 2000;
+    }
+
+    .credits-display {
+        white-space: nowrap;
     }
 
     .stats-grid,
@@ -1750,6 +1782,13 @@ body {
         position: fixed;
         z-index: 9999;
         transform: translateX(-100%);
+    }
+
+    .sidebar-toggle {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1500;
     }
 }
 

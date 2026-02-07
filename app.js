@@ -70,6 +70,10 @@ function updateCreditsDisplay(credits) {
     if (profileCredits) profileCredits.textContent = credits;
 }
 
+function getDb() {
+    return window.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+}
+
 // ===================================
 // Load User Data
 // ===================================
@@ -80,7 +84,13 @@ async function loadUserData() {
     }
 
     try {
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const dbRef = getDb();
+        if (!dbRef) {
+            console.warn('Firestore not available, cannot load credits');
+            return;
+        }
+
+        const userDoc = await dbRef.collection('users').doc(currentUser.uid).get();
         if (userDoc.exists) {
             const userData = userDoc.data();
             userCredits = userData.credits || 0;
@@ -99,7 +109,13 @@ async function loadUserData() {
 // ===================================
 function setupRealtimeListeners() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid)
+    const dbRef = getDb();
+    if (!dbRef) {
+        console.warn('Firestore not available, cannot subscribe to credits');
+        return;
+    }
+
+    dbRef.collection('users').doc(currentUser.uid)
         .onSnapshot((doc) => {
             if (doc.exists) {
                 const userData = doc.data();
@@ -224,30 +240,6 @@ navItems.forEach(item => {
         document.querySelector('.sidebar-overlay')?.remove();
     });
 });
-
-// Add toggle button if it doesn't exist
-if (!document.querySelector('.sidebar-toggle')) {
-    const toggle = document.createElement('button');
-    toggle.className = 'sidebar-toggle';
-    toggle.innerHTML = '☰';
-    toggle.type = 'button';
-    toggle.style.cssText = 'z-index: 9999 !important; display: block !important;';
-    toggle.setAttribute('data-touch-target', 'true');
-
-    const handleToggle = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Toggle clicked/touched');
-        toggleSidebar();
-    };
-
-    toggle.addEventListener('click', handleToggle);
-    toggle.addEventListener('touchstart', handleToggle, { passive: false });
-    toggle.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
-
-    document.body.appendChild(toggle);
-    console.log('✅ Sidebar toggle button created');
-}
 
 // ===================================
 // Page Navigation
@@ -659,6 +651,11 @@ generateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     if (generateBtn?.disabled) return;
+
+    if (!firebase.auth().currentUser) {
+        showToast('Ju lutem kyçuni për të gjeneruar ditarin.', 'error');
+        return;
+    }
     
     // Check credits
     if (userCredits < window.CONFIG.credits.perGeneration) {
@@ -710,8 +707,9 @@ generateForm.addEventListener('submit', async (e) => {
         showToast('Ditari u gjenerua me sukses!', 'success');
         
     } catch (error) {
-        console.error('Generation error:', error?.message || error);
-        showToast('Gabim gjatë gjenerimit. Provoni përsëri.', 'error');
+        const errorMessage = error?.message || 'Gabim gjatë gjenerimit. Provoni përsëri.';
+        console.error('Generation error:', errorMessage);
+        showToast(errorMessage, 'error');
     } finally {
         showLoading(false);
         if (generateBtn) {
@@ -737,29 +735,34 @@ async function generateDiaryWithAI(formData) {
             : "";
     
     const prompt = `Je një mësues ekspert. INJORO fushat manuale: fusha, lënda, shkalla, klasa, tema_1, tema_2.
-Fokuso vetëm te 10 fushat e mëposhtme. Përdor gjuhë të pastër akademike shqipe.
+Fokuso vetëm te 11 fushat e mëposhtme. Përdor gjuhë të pastër akademike shqipe.
 
 ${exampleReferenceInstruction}
 
 RREGULLA UNIVERSALE:
 1. Përshtat shembujt me lëndën dhe temën (Matematikë, Informatikë, Biologji, Gjuhë Shqipe, etj.).
-2. Kompetencat (rezultatet) duhet të jenë MINIMUM 5 dhe pa numërim "Kompetenca 1".
-3. Ndërtimi i njohurive duhet të jetë i gjatë, teorik dhe me shembuj konkretë ushtrimesh ose raste studimi.
-4. Lidhja me njohuritë e mëparshme duhet të krijojë urë logjike me temën aktuale.
-5. Situata, lidhja, burimet, fjalët kyçe, metodologjia, përforcimi dhe vlerësimi duhet të bazohen në foto.
+2. Kompetencat (rezultatet) duhet të jenë MINIMUM 5, fjali të ndara dhe pa numërim "Kompetenca 1".
+3. Çdo fjali e kompetencave fillon me simbol shigjete "➢" (ose pikë "•").
+4. Ndërtimi i njohurive duhet të jetë i gjatë, teorik dhe me shembuj konkretë ushtrimesh ose raste studimi.
+5. Lidhja me njohuritë e mëparshme duhet të krijojë urë logjike me temën aktuale.
+6. Situata, lidhja, burimet, fjalët kyçe, metodologjia, përforcimi dhe vlerësimi duhet të bazohen në foto.
+7. Shënimet vlerësuese (N2, N3, N4) bazohen në rezultatet e të nxënit nga fotoja e librit.
+8. Detyra e shtëpisë duhet të mbetet bosh (""), pa përmbajtje.
+9. Përdor folje vepruese profesionale (p.sh. "Dallon...", "Përcakton...", "Skicon...").
 
-Kthe VETËM objektin JSON me KËTO 10 ÇELËSA:
+Kthe VETËM objektin JSON me KËTO 11 ÇELËSA:
 {
     "situata": "Situata problemore nga foto (fiks, pa përgjithësime)",
     "fushat": "Lidhja me fushat e tjera (fiks si në foto)",
     "burimet": "Lista e burimeve si në foto (p.sh. Libri i nxënësit fq 121-125, drejtëza, trekëndësh)",
-    "rezultatet": "Zbaton rregullat e...\\nIdentifikon elementet...\\nAnalizon rastet...\\nArgumenton zgjidhjet...\\nPërdor konceptet...",
+    "rezultatet": "➢ Zbaton rregullat e...\\n➢ Identifikon elementet...\\n➢ Analizon rastet...\\n➢ Argumenton zgjidhjet...\\n➢ Përdor konceptet...",
     "fjalet_kyce": "Fjalët kyçe nga foto, ndara me presje",
     "metodologjia": "Metodologjia dhe veprimtaritë e nxënësve",
     "lidhja_e_temes_me_njohurite_e_meparshme": "Urë logjike mes temës aktuale dhe njohurive të mëparshme",
     "ndertimi_i_njohurive": "Përshkrim i gjatë me teori + shembuj konkretë nga tema",
     "perforcimi_i_te_nxenit": "Ushtrime të ngjashme dhe mënyra e kontrollit",
-    "shenime_vleresuese": "N2: ...\\nN3: ...\\nN4: ..."
+    "shenime_vleresuese": "N2: ...\\nN3: ...\\nN4: ...",
+    "detyra_shtepie": ""
 }
 
 RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
@@ -796,14 +799,23 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
             console.warn(`Payload i madh i fotove: ${payloadMB} MB. Mund te shkaktoje 413.`);
         }
 
+        if (!photosPayload.length) {
+            throw new Error('Ngarkoni fotot e librit përpara gjenerimit.');
+        }
+
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            throw new Error('Përdoruesi nuk është i kyçur.');
+        }
+
         const response = await fetch(window.CONFIG.openai.endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${await firebase.auth().currentUser.getIdToken()}`
+                'Authorization': `Bearer ${await currentUser.getIdToken()}`
             },
             body: JSON.stringify({
-                systemInstruction: "Je një mësues ekspert. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 10 çelësat e kërkuar dhe asnjë tekst tjetër. Përdor shqipe akademike dhe përshtat shembujt me lëndën e temës.",
+                systemInstruction: "Je një mësues ekspert. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 11 çelësat e kërkuar dhe asnjë tekst tjetër. Kompetencat duhet të fillojnë me simbol shigjete (➢) ose pikë (•). Shënimet vlerësuese (N2, N3, N4) bazohen në rezultatet e të nxënit nga fotoja e librit. Detyra shtëpie duhet të jetë bosh (\"\"). Përdor shqipe akademike dhe folje vepruese profesionale.",
                 prompt: prompt,
                 photos: photosPayload,
                 formData: formData,
@@ -861,6 +873,20 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
         parsedResult.tema_1 = formData.tema_1;
         parsedResult.tema_2 = formData.tema_2 || '';
         parsedResult.date = '________';
+        parsedResult.detyra_shtepie = '';
+
+        if (typeof parsedResult.rezultatet === 'string') {
+            const normalizedRezultatet = parsedResult.rezultatet
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map(line => {
+                    const cleaned = line.replace(/^[-–—•➢]\s*/, '');
+                    return (line.startsWith('➢') || line.startsWith('•')) ? line : `➢ ${cleaned}`;
+                })
+                .join('\n');
+            parsedResult.rezultatet = normalizedRezultatet;
+        }
 
         // Ensure all required fields exist with default values
         const requiredFields = [
@@ -876,9 +902,7 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
             }
         });
 
-        if (!parsedResult.detyra_shtepie) {
-            parsedResult.detyra_shtepie = '';
-        }
+        parsedResult.detyra_shtepie = '';
 
         console.log('✅ All fields validated:', parsedResult);
         return parsedResult;
