@@ -740,15 +740,19 @@ Fokuso vetëm te 11 fushat e mëposhtme. Përdor gjuhë të pastër akademike sh
 ${exampleReferenceInstruction}
 
 RREGULLA UNIVERSALE:
-1. Përshtat shembujt me lëndën dhe temën (Matematikë, Informatikë, Biologji, Gjuhë Shqipe, etj.).
-2. Kompetencat (rezultatet) duhet të jenë MINIMUM 5, fjali të ndara dhe pa numërim "Kompetenca 1".
-3. Çdo fjali e kompetencave fillon me simbol shigjete "➢" (ose pikë "•").
-4. Ndërtimi i njohurive duhet të jetë i gjatë, teorik dhe me shembuj konkretë ushtrimesh ose raste studimi.
-5. Lidhja me njohuritë e mëparshme duhet të krijojë urë logjike me temën aktuale.
-6. Situata, lidhja, burimet, fjalët kyçe, metodologjia, përforcimi dhe vlerësimi duhet të bazohen në foto.
-7. Shënimet vlerësuese (N2, N3, N4) bazohen në rezultatet e të nxënit nga fotoja e librit.
-8. Detyra e shtëpisë duhet të mbetet bosh (""), pa përmbajtje.
-9. Përdor folje vepruese profesionale (p.sh. "Dallon...", "Përcakton...", "Skicon...").
+1. Analizo çdo rresht të fotos së librit. Mos gjenero fjali të përgjithshme.
+2. Përshtat shembujt me lëndën dhe temën (Matematikë, Informatikë, Biologji, Gjuhë Shqipe, etj.).
+3. Kompetencat (rezultatet) duhet të jenë MINIMUM 5, fjali të ndara dhe pa numërim "Kompetenca 1".
+4. Çdo kompetencë fillon me simbol shigjete "➢" dhe është fjali e gjatë që tregon saktësisht aftësinë e fituar nga faqja e librit.
+5. Ndërtimi i njohurive duhet të jetë i gjatë, teorik dhe me shembuj konkretë nga ushtrimet e librit.
+6. Metodologjia duhet të jetë e gjatë dhe e detajuar, me hapa të qartë se si nxënësi arrin rezultatin.
+    Nëse ka figura/vizatime (kub, trekëndësh, hark), përfshi udhëzimin: "Mësuesi udhëzon nxënësit të skicojnë figurën gjeometrike (p.sh. Kubin/Harkun) sipas modelit të paraqitur në faqen [X] të librit".
+7. Për çdo ushtrim të dukshëm në foto, krijo paragraf shpjegues me pyetjet që mësuesi i drejton nxënësve.
+8. Lidhja me njohuritë e mëparshme duhet të krijojë urë logjike me temën aktuale.
+9. Situata, lidhja, burimet, fjalët kyçe, metodologjia, përforcimi dhe vlerësimi duhet të bazohen në foto.
+10. Shënimet vlerësuese (N2, N3, N4) duhet të jenë të pasura dhe të bazuara në vështirësinë e ushtrimeve në foto.
+11. Detyra e shtëpisë duhet të mbetet bosh (""), pa përmbajtje.
+12. Përdor folje vepruese profesionale (p.sh. "Dallon...", "Përcakton...", "Skicon...").
 
 Kthe VETËM objektin JSON me KËTO 11 ÇELËSA:
 {
@@ -815,7 +819,7 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
                 'Authorization': `Bearer ${await currentUser.getIdToken()}`
             },
             body: JSON.stringify({
-                systemInstruction: "Je një mësues ekspert. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 11 çelësat e kërkuar dhe asnjë tekst tjetër. Kompetencat duhet të fillojnë me simbol shigjete (➢) ose pikë (•). Shënimet vlerësuese (N2, N3, N4) bazohen në rezultatet e të nxënit nga fotoja e librit. Detyra shtëpie duhet të jetë bosh (\"\"). Përdor shqipe akademike dhe folje vepruese profesionale.",
+                systemInstruction: "Ti je një mësues profesionist. Foton Model trajtoje si udhëzuesin e vetëm për stilin dhe nivelin e detajeve. Analizo çdo rresht të fotos së librit dhe mos gjenero tekst të përgjithshëm. Shiko foton model dhe kopjo stilin e saj fjali për fjali. Nëse modeli ka 10 pika te kompetencat, nxirr 10 pika nga libri. Përdor simbolin ➢ për çdo rresht të ri te kompetencat dhe shënimet vlerësuese. Kompetencat duhet të jenë fjali të gjata dhe profesionale që përshkruajnë saktësisht aftësinë e fituar. Shënimet vlerësuese (N2, N3, N4) duhet të jenë të pasura dhe të bazuara në vështirësinë e ushtrimeve në foto. Metodologjia duhet të jetë e detajuar me hapa të qartë dhe të përfshijë vizatimet kur shfaqen figura (p.sh. kub, trekëndësh, hark) me udhëzimin: \"Mësuesi udhëzon nxënësit të skicojnë figurën gjeometrike (p.sh. Kubin/Harkun) sipas modelit të paraqitur në faqen [X] të librit\". Për çdo ushtrim në foto, shto paragraf shpjegues me pyetjet që mësuesi i drejton nxënësve. INJORO fushat manuale (fusha, lënda, shkalla, klasa, tema_1, tema_2). Kthe VETËM JSON me 11 çelësat e kërkuar dhe asnjë tekst tjetër. Detyra shtëpie duhet të jetë bosh (\"\").",
                 prompt: prompt,
                 photos: photosPayload,
                 formData: formData,
@@ -875,18 +879,48 @@ RREGULL: Kthe VETËM objektin JSON, asgjë më shumë.`;
         parsedResult.date = '________';
         parsedResult.detyra_shtepie = '';
 
-        if (typeof parsedResult.rezultatet === 'string') {
-            const normalizedRezultatet = parsedResult.rezultatet
-                .split('\n')
-                .map(line => line.trim())
+        const normalizeListLines = (value, splitOnComma = false) => {
+            if (!value) return '';
+            const raw = String(value);
+            const parts = raw.includes('\n')
+                ? raw.split(/\r?\n/)
+                : (splitOnComma ? raw.split(/[,;]+/) : [raw]);
+            return parts.map(part => part.trim()).filter(Boolean).join('\n');
+        };
+
+        const normalizeParagraphs = (value) => {
+            if (!value) return '';
+            const raw = String(value);
+            const parts = raw.split(/\r?\n/).map(part => part.trim()).filter(Boolean);
+            return parts.join('\n\n');
+        };
+
+        const normalizeArrowLines = (value) => {
+            if (!value) return '';
+            const raw = String(value);
+            const parts = raw.includes('\n') ? raw.split(/\r?\n/) : raw.split(/[•➢]/);
+            return parts.map(line => line.trim())
                 .filter(Boolean)
                 .map(line => {
                     const cleaned = line.replace(/^[-–—•➢]\s*/, '');
                     return (line.startsWith('➢') || line.startsWith('•')) ? line : `➢ ${cleaned}`;
                 })
                 .join('\n');
-            parsedResult.rezultatet = normalizedRezultatet;
-        }
+        };
+
+        const normalizeShenime = (value) => {
+            if (!value) return '';
+            const raw = String(value)
+                .replace(/\s*(N3:)/g, '\n$1')
+                .replace(/\s*(N4:)/g, '\n$1');
+            return normalizeArrowLines(raw);
+        };
+
+        parsedResult.burimet = normalizeListLines(parsedResult.burimet, true);
+        parsedResult.metodologjia = normalizeListLines(parsedResult.metodologjia, true);
+        parsedResult.rezultatet = normalizeArrowLines(parsedResult.rezultatet);
+        parsedResult.shenime_vleresuese = normalizeShenime(parsedResult.shenime_vleresuese);
+        parsedResult.ndertimi_i_njohurive = normalizeParagraphs(parsedResult.ndertimi_i_njohurive);
 
         // Ensure all required fields exist with default values
         const requiredFields = [
@@ -990,9 +1024,9 @@ function generateHTMLFromJSON(data, formData) {
                 ${tema_2_display ? `<p style="margin: 0 0 8px 0;"><em>Tema 2:</em> ${tema_2_display}</p>` : ''}
                 <p style="margin: 0 0 8px 0;"><em>Situata e parashikuar e të nxënit:</em> ${data.situata || ''}</p>
                 <p style="margin: 0 0 6px 0;"><em>Lidhja me fushat e tjera:</em></p>
-                <p style="margin: 0 0 8px 0;">${data.fushat || ''}</p>
+                <p style="margin: 0 0 8px 0; white-space: pre-wrap;">${data.fushat || ''}</p>
                 <p style="margin: 0 0 6px 0;"><em>Burimet e informacionit dhe mjetet:</em></p>
-                <p style="margin: 0;">${data.burimet || ''}</p>
+                <p style="margin: 0; white-space: pre-wrap;">${data.burimet || ''}</p>
             </td>
             <td style="border: 1px solid #000; padding: 10px; width: 60%; vertical-align: top;">
                 <p style="margin: 0 0 8px 0;"><em>Rezultatet e të nxënit të kompetencave:</em></p>
@@ -1003,7 +1037,7 @@ function generateHTMLFromJSON(data, formData) {
         <tr>
             <td colspan="2" style="border: 1px solid #000; padding: 10px; vertical-align: top;">
                 <p style="margin: 0 0 6px 0;"><em>Metodologjia dhe veprimtaritë e nxënësve:</em></p>
-                <p style="margin: 0;">${data.metodologjia || ''}</p>
+                <p style="margin: 0; white-space: pre-wrap;">${data.metodologjia || ''}</p>
             </td>
         </tr>
     </table>

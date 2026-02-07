@@ -377,7 +377,7 @@ app.post('/api/generate', async (req, res) => {
         { role: 'system', content: systemMessage },
         { role: 'user', content: messageContent }
       ],
-      temperature: 0.5,
+      temperature: 0.2,
       max_tokens: 2000,
       response_format: { "type": "json_object" }
     });
@@ -452,6 +452,10 @@ app.post('/api/render-docx', async (req, res) => {
           // Replace [KEY] format (uppercase)
           docContent = docContent.replace(new RegExp(`\\[\\s*${key.toUpperCase()}\\s*\\]`, 'g'), textValue);
         }
+
+        // Strip unreplaced placeholders
+        docContent = docContent.replace(/{{\s*[^}]+\s*}}/g, '');
+        docContent = docContent.replace(/\[\s*[A-Z0-9_]+\s*\]/g, '');
 
         zip.file('word/document.xml', docContent);
       }
