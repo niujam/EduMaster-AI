@@ -17,6 +17,7 @@
     --shadow: rgba(0, 0, 0, 0.3);
     --glass-bg: rgba(45, 45, 45, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --main-padding: 20px;
 }
 
 body.light-mode {
@@ -1703,6 +1704,53 @@ body {
    =================================== */
 .settings-section {
     margin-bottom: 40px;
+}
+
+/* ===================================
+   Mobile Enhancements
+   =================================== */
+@media (max-width: 768px) {
+    :root {
+        --main-padding: 10px;
+    }
+
+    .main-content {
+        width: 95%;
+        margin: 0 auto;
+        padding: var(--main-padding);
+    }
+
+    .page {
+        padding: var(--main-padding);
+    }
+
+    .generate-form {
+        width: 95%;
+        max-width: 95%;
+        padding: var(--main-padding);
+        margin: 0 auto 24px;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+        width: 100%;
+    }
+
+    .stats-grid,
+    .action-cards,
+    .profile-stats,
+    .pricing-grid,
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        z-index: 9999;
+        transform: translateX(-100%);
+    }
 }
 
 .settings-section h2 {
