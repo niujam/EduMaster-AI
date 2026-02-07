@@ -43,8 +43,8 @@ const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 // Body Parser for all routes except webhook
-app.use('/api', bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/api', bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Create Checkout Session for Payment
 app.post('/api/create-checkout-session', async (req, res) => {

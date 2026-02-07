@@ -438,7 +438,12 @@ function optoFoto(file) {
     });
 }
 
-function optimizeBase64Image(base64) {
+function estimateBase64Bytes(base64) {
+    const cleaned = base64.includes(',') ? base64.split(',')[1] : base64;
+    return Math.ceil((cleaned.length * 3) / 4);
+}
+
+function optimizeBase64Image(base64, maxSize = 1200, quality = 0.9) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
@@ -447,7 +452,6 @@ function optimizeBase64Image(base64) {
 
             let newWidth = img.width;
             let newHeight = img.height;
-            const maxSize = 1200;
 
             if (img.width > img.height) {
                 if (img.width > maxSize) {
@@ -465,7 +469,7 @@ function optimizeBase64Image(base64) {
             canvas.height = newHeight;
             ctx.drawImage(img, 0, 0, newWidth, newHeight);
 
-            const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            const optimizedBase64 = canvas.toDataURL('image/jpeg', quality);
             resolve(optimizedBase64);
         };
         img.onerror = () => reject(new Error('Gabim në ngarkimin e imazhit'));
@@ -498,7 +502,11 @@ if (modelPhotoInput) {
 
         try {
             showToast(`📸 Po optimizohet modeli: ${file.name}...`, 'info');
-            const optimizedBase64 = await optoFoto(file);
+            let optimizedBase64 = await optoFoto(file);
+            const modelBytes = estimateBase64Bytes(optimizedBase64);
+            if (modelBytes > 1024 * 1024) {
+                optimizedBase64 = await optimizeBase64Image(optimizedBase64, 1000, 0.9);
+            }
             modelPhoto = { name: file.name, base64: optimizedBase64 };
             renderModelPreview();
             updateGenerateButtonState();
@@ -603,8 +611,8 @@ async function loadFallbackModelBase64() {
             reader.onerror = () => reject(new Error('Gabim në leximin e modelit rezervë'));
             reader.readAsDataURL(blob);
         });
-        cachedFallbackModelBase64 = await optimizeBase64Image(base64);
-        return base64;
+        cachedFallbackModelBase64 = await optimizeBase64Image(base64, 1200, 0.9);
+        return cachedFallbackModelBase64;
     } catch (error) {
         console.warn('Nuk u gjet modeli rezervë:', error);
         return null;
@@ -702,7 +710,7 @@ generateForm.addEventListener('submit', async (e) => {
         showToast('Ditari u gjenerua me sukses!', 'success');
         
     } catch (error) {
-        console.error('Generation error:', error);
+        console.error('Generation error:', error?.message || error);
         showToast('Gabim gjatë gjenerimit. Provoni përsëri.', 'error');
     } finally {
         showLoading(false);
