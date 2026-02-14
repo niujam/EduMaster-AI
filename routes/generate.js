@@ -20,14 +20,25 @@ const upload = multer({
 });
 
 function parseBase64Photos(body) {
-    const keys = ['photos', 'photos[]'];
+    const keys = ['photos', 'photos[]', 'contentPhotos'];
     const values = [];
 
     keys.forEach((key) => {
         const val = body[key];
         if (!val) return;
         if (Array.isArray(val)) {
-            values.push(...val);
+            val.forEach((item) => {
+                if (!item) return;
+                if (typeof item === 'string') {
+                    values.push(item);
+                } else if (typeof item === 'object' && item.base64) {
+                    values.push(item.base64);
+                }
+            });
+            return;
+        }
+        if (typeof val === 'object' && val.base64) {
+            values.push(val.base64);
             return;
         }
         if (typeof val === 'string') {
@@ -35,7 +46,16 @@ function parseBase64Photos(body) {
             if (trimmed.startsWith('[')) {
                 try {
                     const parsed = JSON.parse(trimmed);
-                    if (Array.isArray(parsed)) values.push(...parsed);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach((item) => {
+                            if (!item) return;
+                            if (typeof item === 'string') {
+                                values.push(item);
+                            } else if (typeof item === 'object' && item.base64) {
+                                values.push(item.base64);
+                            }
+                        });
+                    }
                     else values.push(trimmed);
                 } catch (_) {
                     values.push(trimmed);
@@ -67,15 +87,46 @@ function buildPromptMinimal({ fusha, lenda, klasa, tema }) {
     ].join('\n');
 }
 
-router.post('/', upload.any(), async (req, res, next) => {
+function readField(req, key) {
+    const direct = req.body?.[key];
+    if (typeof direct === 'string' && direct.trim()) return direct.trim();
+
+    const nested = req.body?.formData?.[key];
+    if (typeof nested === 'string' && nested.trim()) return nested.trim();
+
+    return '';
+}
+
+function normalizeTema(req) {
+    return readField(req, 'tema')
+        || readField(req, 'topic')
+        || readField(req, 'tema_1')
+        || '';
+}
+
+function parseJsonPhotos(req) {
+    const fromRoot = parseBase64Photos(req.body || {});
+    const fromFormData = parseBase64Photos(req.body?.formData || {});
+    return [...fromRoot, ...fromFormData];
+}
+
+function maybeMultipartUpload(req, res, next) {
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.toLowerCase().includes('multipart/form-data')) {
+        return upload.any()(req, res, next);
+    }
+    return next();
+}
+
+router.post('/', maybeMultipartUpload, async (req, res, next) => {
     try {
-        const fusha = (req.body.fusha || '').trim();
-        const lenda = (req.body.lenda || '').trim();
-        const klasa = (req.body.klasa || '').trim();
-        const tema = (req.body.tema || '').trim();
+        const fusha = readField(req, 'fusha');
+        const lenda = readField(req, 'lenda');
+        const klasa = readField(req, 'klasa');
+        const tema = normalizeTema(req);
 
         const uploadedImageUrls = (req.files || []).map(fileToDataUrl);
-        const base64ImageUrls = parseBase64Photos(req.body);
+        const base64ImageUrls = parseJsonPhotos(req);
         const imageUrls = [...uploadedImageUrls, ...base64ImageUrls];
 
         if (!lenda || !tema) {
@@ -86,14 +137,16 @@ router.post('/', upload.any(), async (req, res, next) => {
             return res.status(400).json({ error: 'At least one photo is required in photos[]' });
         }
 
-        const prompt = buildPromptMinimal({ fusha, lenda, klasa, tema });
+        const prompt = (req.body?.prompt && String(req.body.prompt).trim())
+            || buildPromptMinimal({ fusha, lenda, klasa, tema });
+
         const diaryJson = await generateStructuredDiary({
             prompt,
             imageUrls,
             temperature: 0.2
         });
 
-        return res.status(200).json(diaryJson);
+        return res.status(200).json({ content: diaryJson });
     } catch (error) {
         return next(error);
     }
