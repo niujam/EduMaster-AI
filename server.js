@@ -16,6 +16,8 @@ const allowedOrigins = [
     'http://127.0.0.1:8080',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
+    'https://edumaster-ai.onrender.com',
+    'https://www.edumaster-ai.onrender.com',
     process.env.PUBLIC_APP_URL
 ].filter(Boolean);
 
