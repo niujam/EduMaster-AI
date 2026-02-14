@@ -15,6 +15,7 @@ const DIARY_SCHEMA = {
         'rezultatet',
         'fjalet_kyce',
         'metodologjia',
+        'lidhja_etemes_me_njohurite_e_meparshme',
         'ndertimi_i_njohurive',
         'perforcimi_i_te_nxenit',
         'shenime_vleresuese'
@@ -24,6 +25,7 @@ const DIARY_SCHEMA = {
         rezultatet: { type: 'string' },
         fjalet_kyce: { type: 'string' },
         metodologjia: { type: 'string' },
+        lidhja_etemes_me_njohurite_e_meparshme: { type: 'string' },
         ndertimi_i_njohurive: { type: 'string' },
         perforcimi_i_te_nxenit: { type: 'string' },
         shenime_vleresuese: { type: 'string' }
@@ -35,7 +37,8 @@ const SYSTEM_INSTRUCTION = [
     'Nuk lejohet asnjë tekst jashtë JSON.',
     'Analizo fotot e librit dhe përdor vetëm informacionin që shihet aty.',
     'Mos gjenero: fusha, lenda, shkalla, klasa, tema_1, tema_2, detyra_shtepie.',
-    'Kompetencat dhe shënimet vlerësuese shkruaji me simbolin ➢ për çdo rresht.'
+    'Kompetencat dhe shënimet vlerësuese shkruaji me simbolin ➢ për çdo rresht.',
+    'metodologjia duhet të jetë fikse: Pyetje-pergjigje, Pune individuale, Pune dyshe, Diskutim.'
 ].join(' ');
 
 function normalizeDataUrl(image) {

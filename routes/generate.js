@@ -80,19 +80,32 @@ function buildPromptMinimal({ fusha, lenda, klasa, tema }) {
         'Perdor vetem te dhenat nga fotot e librit.',
         `Kontekst form-data (mos i gjenero ne output): Fusha=${fusha || ''}, Lenda=${lenda || ''}, Klasa=${klasa || ''}`,
         `Tema: ${tema || ''}`,
-        'Output duhet te kete vetem keto fusha: situata, rezultatet, fjalet_kyce, metodologjia, ndertimi_i_njohurive, perforcimi_i_te_nxenit, shenime_vleresuese.',
-        'Kufij karakteresh: situata<=350, metodologjia<=450, ndertimi_i_njohurive<=500, perforcimi_i_te_nxenit<=300, shenime_vleresuese<=250.',
+        'Output duhet te kete vetem keto fusha: situata, rezultatet, fjalet_kyce, metodologjia, lidhja_etemes_me_njohurite_e_meparshme, ndertimi_i_njohurive, perforcimi_i_te_nxenit, shenime_vleresuese.',
+        'metodologjia duhet te jete fiks: "Pyetje-pergjigje, Pune individuale, Pune dyshe, Diskutim".',
+        'Kufij karakteresh: situata<=150, lidhja_etemes_me_njohurite_e_meparshme<=100, ndertimi_i_njohurive<=500, perforcimi_i_te_nxenit<=400, shenime_vleresuese<=150.',
         'Mos kthe asnje shpjegim. Vetem JSON.'
     ].join('\n');
 }
 
 const CHARACTER_LIMITS = {
-    situata: 350,
-    metodologjia: 450,
+    situata: 150,
+    lidhja_etemes_me_njohurite_e_meparshme: 100,
     ndertimi_i_njohurive: 500,
-    perforcimi_i_te_nxenit: 300,
-    shenime_vleresuese: 250
+    perforcimi_i_te_nxenit: 400,
+    shenime_vleresuese: 150
 };
+
+const FIXED_METODOLOGJIA = 'Pyetje-pergjigje, Pune individuale, Pune dyshe, Diskutim';
+const ALLOWED_AI_KEYS = [
+    'situata',
+    'rezultatet',
+    'fjalet_kyce',
+    'metodologjia',
+    'lidhja_etemes_me_njohurite_e_meparshme',
+    'ndertimi_i_njohurive',
+    'perforcimi_i_te_nxenit',
+    'shenime_vleresuese'
+];
 
 function clampText(value, max) {
     const text = String(value || '').trim();
@@ -101,7 +114,11 @@ function clampText(value, max) {
 }
 
 function applyCharacterLimits(aiData) {
-    const output = { ...aiData };
+    const output = {};
+    ALLOWED_AI_KEYS.forEach((key) => {
+        output[key] = String(aiData?.[key] || '');
+    });
+    output.metodologjia = FIXED_METODOLOGJIA;
     Object.entries(CHARACTER_LIMITS).forEach(([key, max]) => {
         output[key] = clampText(output[key], max);
     });
@@ -118,25 +135,26 @@ function mergeWithFormData(aiData, req) {
         return typeof val === 'string' ? val.trim() : '';
     };
 
-    return {
+    const finalData = {
+        ...aiData,
         fusha: read('fusha'),
         lenda: read('lenda'),
         shkalla: read('shkalla'),
         klasa: read('klasa'),
-        tema_1: read('tema_1') || read('tema') || read('topic'),
-        tema_2: read('tema_2'),
-        situata: String(aiData.situata || ''),
-        fushat: String(read('fushat') || ''),
-        burimet: String(read('burimet') || ''),
-        rezultatet: String(aiData.rezultatet || ''),
-        fjalet_kyce: String(aiData.fjalet_kyce || ''),
-        metodologjia: String(aiData.metodologjia || ''),
-        lidhja_e_temes_me_njohurite_e_meparshme: String(read('lidhja_e_temes_me_njohurite_e_meparshme') || ''),
-        ndertimi_i_njohurive: String(aiData.ndertimi_i_njohurive || ''),
-        perforcimi_i_te_nxenit: String(aiData.perforcimi_i_te_nxenit || ''),
-        shenime_vleresuese: String(aiData.shenime_vleresuese || ''),
-        detyra_shtepie: String(read('detyra_shtepie') || '')
+        tema1: read('tema_1') || read('tema') || read('topic'),
+        tema2: read('tema_2') || '',
+        detyra_shtepie: read('detyra_shtepie') || ''
     };
+
+    finalData.metodologjia = FIXED_METODOLOGJIA;
+
+    finalData.tema_1 = finalData.tema1;
+    finalData.tema_2 = finalData.tema2;
+    finalData.lidhja_e_temes_me_njohurite_e_meparshme = String(aiData.lidhja_etemes_me_njohurite_e_meparshme || '');
+    finalData.fushat = String(read('fushat') || '');
+    finalData.burimet = String(read('burimet') || '');
+
+    return finalData;
 }
 
 function readField(req, key) {

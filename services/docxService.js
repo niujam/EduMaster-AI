@@ -6,6 +6,14 @@ const Docxtemplater = require('docxtemplater');
 const TEMPLATE_PATH = process.env.DOCX_TEMPLATE_PATH || path.join(__dirname, '..', 'shabllon.docx');
 
 const TEMPLATE_PLACEHOLDERS = [
+    '{{fusha}}',
+    '{{lenda}}',
+    '{{shkalla}}',
+    '{{klasa}}',
+    '{{tema1}}',
+    '{{tema2}}',
+    '{{tema_1}}',
+    '{{tema_2}}',
     '{{situata}}',
     '{{fushat}}',
     '{{burimet}}',
@@ -26,14 +34,29 @@ function assertTemplateExists() {
 }
 
 function normalizeDocxData(payload) {
+    const tema1 = payload.tema1 || payload.tema_1 || '';
+    const tema2 = payload.tema2 || payload.tema_2 || '';
+    const lidhja = payload.lidhja_e_temes_me_njohurite_e_meparshme
+        || payload.lidhja_etemes_me_njohurite_e_meparshme
+        || '';
+
     return {
+        fusha: String(payload.fusha || ''),
+        lenda: String(payload.lenda || ''),
+        shkalla: String(payload.shkalla || ''),
+        klasa: String(payload.klasa || ''),
+        tema1: String(tema1),
+        tema2: String(tema2),
+        tema_1: String(tema1),
+        tema_2: String(tema2),
         situata: String(payload.situata || ''),
         fushat: String(payload.fushat || ''),
         burimet: String(payload.burimet || ''),
         rezultatet: String(payload.rezultatet || ''),
         fjalet_kyce: String(payload.fjalet_kyce || ''),
         metodologjia: String(payload.metodologjia || ''),
-        lidhja_e_temes_me_njohurite_e_meparshme: String(payload.lidhja_e_temes_me_njohurite_e_meparshme || ''),
+        lidhja_e_temes_me_njohurite_e_meparshme: String(lidhja),
+        lidhja_etemes_me_njohurite_e_meparshme: String(lidhja),
         ndertimi_i_njohurive: String(payload.ndertimi_i_njohurive || ''),
         perforcimi_i_te_nxenit: String(payload.perforcimi_i_te_nxenit || ''),
         shenime_vleresuese: String(payload.shenime_vleresuese || ''),
