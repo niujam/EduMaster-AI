@@ -12,29 +12,21 @@ const DIARY_SCHEMA = {
     additionalProperties: false,
     required: [
         'situata',
-        'fushat',
-        'burimet',
         'rezultatet',
         'fjalet_kyce',
         'metodologjia',
-        'lidhja_e_temes_me_njohurite_e_meparshme',
         'ndertimi_i_njohurive',
         'perforcimi_i_te_nxenit',
-        'shenime_vleresuese',
-        'detyra_shtepie'
+        'shenime_vleresuese'
     ],
     properties: {
         situata: { type: 'string' },
-        fushat: { type: 'string' },
-        burimet: { type: 'string' },
         rezultatet: { type: 'string' },
         fjalet_kyce: { type: 'string' },
         metodologjia: { type: 'string' },
-        lidhja_e_temes_me_njohurite_e_meparshme: { type: 'string' },
         ndertimi_i_njohurive: { type: 'string' },
         perforcimi_i_te_nxenit: { type: 'string' },
-        shenime_vleresuese: { type: 'string' },
-        detyra_shtepie: { type: 'string' }
+        shenime_vleresuese: { type: 'string' }
     }
 };
 
@@ -42,8 +34,8 @@ const SYSTEM_INSTRUCTION = [
     'Ti je mësues profesionist që gjeneron vetëm JSON sipas skemës.',
     'Nuk lejohet asnjë tekst jashtë JSON.',
     'Analizo fotot e librit dhe përdor vetëm informacionin që shihet aty.',
-    'Kompetencat dhe shënimet vlerësuese shkruaji me simbolin ➢ për çdo rresht.',
-    'Fusha detyra_shtepie duhet të jetë gjithmonë string bosh "".'
+    'Mos gjenero: fusha, lenda, shkalla, klasa, tema_1, tema_2, detyra_shtepie.',
+    'Kompetencat dhe shënimet vlerësuese shkruaji me simbolin ➢ për çdo rresht.'
 ].join(' ');
 
 function normalizeDataUrl(image) {
@@ -82,7 +74,6 @@ function normalizeOutput(parsed) {
             output[key] = output[key] == null ? '' : String(output[key]);
         }
     });
-    output.detyra_shtepie = '';
     return output;
 }
 

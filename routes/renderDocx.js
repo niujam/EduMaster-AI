@@ -15,7 +15,9 @@ function buildFilename(lenda = 'ditar') {
 router.post('/', async (req, res, next) => {
     try {
         const payload = req.body && typeof req.body === 'object'
-            ? (req.body.data && typeof req.body.data === 'object' ? req.body.data : req.body)
+            ? (req.body.data && typeof req.body.data === 'object'
+                ? req.body.data
+                : (req.body.content && typeof req.body.content === 'object' ? req.body.content : req.body))
             : null;
 
         if (!payload) {

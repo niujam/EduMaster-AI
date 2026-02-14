@@ -78,13 +78,65 @@ function buildPromptMinimal({ fusha, lenda, klasa, tema }) {
     return [
         'Gjenero VETEM JSON sipas skemes.',
         'Perdor vetem te dhenat nga fotot e librit.',
-        `Fusha: ${fusha || ''}`,
-        `Lenda: ${lenda || ''}`,
-        `Klasa: ${klasa || ''}`,
+        `Kontekst form-data (mos i gjenero ne output): Fusha=${fusha || ''}, Lenda=${lenda || ''}, Klasa=${klasa || ''}`,
         `Tema: ${tema || ''}`,
-        'Kompetencat dhe shenime_vleresuese me simbolin ➢ per çdo rresht.',
-        'detyra_shtepie duhet te jete "".'
+        'Output duhet te kete vetem keto fusha: situata, rezultatet, fjalet_kyce, metodologjia, ndertimi_i_njohurive, perforcimi_i_te_nxenit, shenime_vleresuese.',
+        'Kufij karakteresh: situata<=350, metodologjia<=450, ndertimi_i_njohurive<=500, perforcimi_i_te_nxenit<=300, shenime_vleresuese<=250.',
+        'Mos kthe asnje shpjegim. Vetem JSON.'
     ].join('\n');
+}
+
+const CHARACTER_LIMITS = {
+    situata: 350,
+    metodologjia: 450,
+    ndertimi_i_njohurive: 500,
+    perforcimi_i_te_nxenit: 300,
+    shenime_vleresuese: 250
+};
+
+function clampText(value, max) {
+    const text = String(value || '').trim();
+    if (!max || text.length <= max) return text;
+    return text.slice(0, max).trimEnd();
+}
+
+function applyCharacterLimits(aiData) {
+    const output = { ...aiData };
+    Object.entries(CHARACTER_LIMITS).forEach(([key, max]) => {
+        output[key] = clampText(output[key], max);
+    });
+    return output;
+}
+
+function mergeWithFormData(aiData, req) {
+    const formData = req.body?.formData && typeof req.body.formData === 'object'
+        ? req.body.formData
+        : req.body || {};
+
+    const read = (name) => {
+        const val = formData[name] ?? req.body?.[name];
+        return typeof val === 'string' ? val.trim() : '';
+    };
+
+    return {
+        fusha: read('fusha'),
+        lenda: read('lenda'),
+        shkalla: read('shkalla'),
+        klasa: read('klasa'),
+        tema_1: read('tema_1') || read('tema') || read('topic'),
+        tema_2: read('tema_2'),
+        situata: String(aiData.situata || ''),
+        fushat: String(read('fushat') || ''),
+        burimet: String(read('burimet') || ''),
+        rezultatet: String(aiData.rezultatet || ''),
+        fjalet_kyce: String(aiData.fjalet_kyce || ''),
+        metodologjia: String(aiData.metodologjia || ''),
+        lidhja_e_temes_me_njohurite_e_meparshme: String(read('lidhja_e_temes_me_njohurite_e_meparshme') || ''),
+        ndertimi_i_njohurive: String(aiData.ndertimi_i_njohurive || ''),
+        perforcimi_i_te_nxenit: String(aiData.perforcimi_i_te_nxenit || ''),
+        shenime_vleresuese: String(aiData.shenime_vleresuese || ''),
+        detyra_shtepie: String(read('detyra_shtepie') || '')
+    };
 }
 
 function readField(req, key) {
@@ -146,7 +198,13 @@ router.post('/', maybeMultipartUpload, async (req, res, next) => {
             temperature: 0.2
         });
 
-        return res.status(200).json({ content: diaryJson });
+        const limitedAiData = applyCharacterLimits(diaryJson);
+        const mergedData = mergeWithFormData(limitedAiData, req);
+
+        return res.status(200).json({
+            content: mergedData,
+            ai_content: limitedAiData
+        });
     } catch (error) {
         return next(error);
     }
